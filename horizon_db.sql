@@ -128,6 +128,18 @@ CREATE TABLE bookings (
    FOREIGN KEY (user_id) REFERENCES users (id),
    FOREIGN KEY (show_id) REFERENCES shows(id)
 );
+# adding more featurs 
+ALTER TABLE bookings
+ADD COLUMN status ENUM ('CONFIRMED', 'CANCELLED') DEFAULT 'CONFIRMED';
+
+ALTER TABLE bookings 
+ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+
+ALTER TABLE users 
+ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+
+ALTER TABLE bookings 
+ADD COLUMN service_fee DECIMAL (10,2) DEFAULT 5.00;
 
 #insert value for booking 
 INSERT INTO bookings 
@@ -154,6 +166,38 @@ VALUES
 (1, 2),
 (2, 3),
 (2, 1);
+
+#create table seat pricing 
+CREATE TABLE seat_pricing(
+	id INT PRIMARY KEY AUTO_INCREMENT, 
+    seat_type ENUM ('Lower', 'Upper', 'VIP') UNIQUE, 
+    multiplier DECIMAL(3,2) NOT NULL 
+);
+
+INSERT INTO seat_pricing (seat_type, multiplier) VALUES 
+('Lower', 1.00),
+('Upper', 1.50),
+('VIP', 2.00);
+
+#system log table 
+CREATE TABLE system_logs(
+     id INT PRIMARY KEY AUTO_INCREMENT, 
+     user_id INT, 
+     action TEXT, 
+     action_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
+     FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+ALTER TABLE booked_seats
+ADD CONSTRAINT unique_seat_per_show UNIQUE (seat_id, booking_id);
+ 
+ ALTER TABLE booked_seats
+ ADD COLUMN show_id INT;
+ 
+ CREATE INDEX idx_show_date ON shows(show_date); 
+ CREATE INDEX inx_film_id ON shows (film_id);
+ CREATE INDEX idx_user_id ON bookings(user_id);
+ 
 
 #view all films and test queries 
 SELECT * FROM films; 
