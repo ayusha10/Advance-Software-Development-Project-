@@ -188,6 +188,46 @@ CREATE TABLE system_logs(
      FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
+#create payment system 
+CREATE TABLE payments (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    booking_id INT NOT NULL,
+    amount_paid DECIMAL(10,2) NOT NULL,
+    payment_method ENUM('Cash', 'Card', 'Online') NOT NULL,
+    payment_status ENUM('PAID', 'FAILED', 'REFUNDED') DEFAULT 'PAID',
+    transaction_reference VARCHAR(100),
+    paid_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (booking_id) REFERENCES bookings(id)
+    ON DELETE CASCADE
+);
+
+#Inserting 
+INSERT INTO payments 
+(booking_id, amount_paid, payment_method, payment_status, transaction_reference)
+VALUES 
+(1, 25.00, 'Card', 'PAID', 'TXN123456'),
+(2, 20.00, 'Cash', 'PAID', NULL);
+
+#promotion table 
+CREATE TABLE promotions (
+    id INT PRIMARY KEY AUTO_INCREMENT, 
+    promo_code VARCHAR (50) UNIQUE NOT NULL, 
+    discount_percentage DECIMAL (5,2) NOT NULL, 
+    valid_from DATE NOT NULL, 
+    is_active BOOLEAN DEFAULT TRUE, 
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO promotions 
+(promo_code, discount_percentage, valid_from, valid_to)
+VALUES
+('HORIZON10', 10.00, '2026-03-01', '2026-03-31'),
+('VIP20', 20.00, '2026-03-05', '2026-04-01');
+
+ALTER TABLE promotions
+ADD COLUMN valid_to DATE NOT NULL;
+
 ALTER TABLE booked_seats
 ADD CONSTRAINT unique_seat_per_show UNIQUE (seat_id, booking_id);
  
