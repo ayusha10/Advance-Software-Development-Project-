@@ -1,15 +1,16 @@
 class User:
-    def __init__(self, user_id, username, password, role, created_at):
+    def __init__(self, user_id, username, password, role, created_at=None, assigned_cinema_id=None):
         self.user_id = user_id
         self.username = username 
         self.password = password
         self.role = role
         self.created_at = created_at 
+        self.assigned_cinema_id = assigned_cinema_id
 
     #getters methods 
 
     def get_user_id (self):
-        return self.id 
+        return self.user_id 
     
     def get_username (self):
         return self.username
@@ -22,6 +23,9 @@ class User:
     
     def get_created_at(self):
         return self.created_at
+
+    def get_assigned_cinema_id(self):
+        return self.assigned_cinema_id
 
  #ROLES 
 
