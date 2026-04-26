@@ -4,13 +4,14 @@ import app.models.screen
 class ScreenRepository:
     def get_all_screens(self, cinema_id=None):
         connection = get_connection()
-        cursor = connection.cursor(dictionary=True)
+        connection.row_factory = __import__('sqlite3').Row
+        cursor = connection.cursor()
         if cinema_id:
             query = """
                 SELECT s.*, c.name as cinema_name 
                 FROM screens s
                 JOIN cinemas c ON s.cinema_id = c.id
-                WHERE s.cinema_id = %s
+                WHERE s.cinema_id = ?
             """
             cursor.execute(query, (cinema_id,))
         else:
@@ -21,9 +22,10 @@ class ScreenRepository:
             """
             cursor.execute(query)
         results = cursor.fetchall()
-        
+
         screens = []
         for result in results:
+            result = dict(result)
             screens.append(app.models.screen.Screen(
                 id=result['id'],
                 cinema_id=result['cinema_id'],
@@ -31,7 +33,6 @@ class ScreenRepository:
                 total_seats=result['total_seats'],
                 cinema_name=result['cinema_name']
             ))
-        
         cursor.close()
         connection.close()
         return screens
@@ -39,7 +40,7 @@ class ScreenRepository:
     def add_screen(self, screen):
         connection = get_connection()
         cursor = connection.cursor()
-        query = "INSERT INTO screens (cinema_id, screen_number, total_seats) VALUES (%s, %s, %s)"
+        query = "INSERT INTO screens (cinema_id, screen_number, total_seats) VALUES (?, ?, ?)"
         cursor.execute(query, (screen.cinema_id, screen.screen_number, screen.total_seats))
         connection.commit()
         screen_id = cursor.lastrowid
@@ -50,7 +51,7 @@ class ScreenRepository:
     def update_screen(self, screen):
         connection = get_connection()
         cursor = connection.cursor()
-        query = "UPDATE screens SET cinema_id = %s, screen_number = %s, total_seats = %s WHERE id = %s"
+        query = "UPDATE screens SET cinema_id = ?, screen_number = ?, total_seats = ? WHERE id = ?"
         cursor.execute(query, (screen.cinema_id, screen.screen_number, screen.total_seats, screen.id))
         connection.commit()
         cursor.close()
@@ -59,7 +60,7 @@ class ScreenRepository:
     def delete_screen(self, screen_id):
         connection = get_connection()
         cursor = connection.cursor()
-        query = "DELETE FROM screens WHERE id = %s"
+        query = "DELETE FROM screens WHERE id = ?"
         cursor.execute(query, (screen_id,))
         connection.commit()
         cursor.close()

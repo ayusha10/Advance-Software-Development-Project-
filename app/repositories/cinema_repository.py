@@ -4,7 +4,8 @@ from app.models.cinema import Cinema
 class CinemaRepository:
     def get_all_cinemas(self):
         connection = get_connection()
-        cursor = connection.cursor(dictionary=True)
+        connection.row_factory = __import__('sqlite3').Row
+        cursor = connection.cursor()
         query = """
             SELECT c.*, ci.name as city_name 
             FROM cinemas c
@@ -12,16 +13,16 @@ class CinemaRepository:
         """
         cursor.execute(query)
         results = cursor.fetchall()
-        
+
         cinemas = []
         for result in results:
+            result = dict(result)
             cinemas.append(Cinema(
                 id=result['id'],
                 name=result['name'],
                 city_id=result['city_id'],
                 city_name=result['city_name']
             ))
-        
         cursor.close()
         connection.close()
         return cinemas
@@ -29,7 +30,7 @@ class CinemaRepository:
     def add_cinema(self, cinema):
         connection = get_connection()
         cursor = connection.cursor()
-        query = "INSERT INTO cinemas (name, city_id) VALUES (%s, %s)"
+        query = "INSERT INTO cinemas (name, city_id) VALUES (?, ?)"
         cursor.execute(query, (cinema.name, cinema.city_id))
         connection.commit()
         cinema_id = cursor.lastrowid
@@ -40,7 +41,7 @@ class CinemaRepository:
     def update_cinema(self, cinema):
         connection = get_connection()
         cursor = connection.cursor()
-        query = "UPDATE cinemas SET name = %s, city_id = %s WHERE id = %s"
+        query = "UPDATE cinemas SET name = ?, city_id = ? WHERE id = ?"
         cursor.execute(query, (cinema.name, cinema.city_id, cinema.id))
         connection.commit()
         cursor.close()
@@ -49,7 +50,7 @@ class CinemaRepository:
     def delete_cinema(self, cinema_id):
         connection = get_connection()
         cursor = connection.cursor()
-        query = "DELETE FROM cinemas WHERE id = %s"
+        query = "DELETE FROM cinemas WHERE id = ?"
         cursor.execute(query, (cinema_id,))
         connection.commit()
         cursor.close()

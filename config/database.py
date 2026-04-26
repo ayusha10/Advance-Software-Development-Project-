@@ -1,11 +1,5 @@
-import mysql.connector  # type: ignore
+import sqlite3
 
 def get_connection():
-    connection = mysql.connector.connect(
-        host="localhost",
-        port=3306,
-        user="root",
-        password="",
-        database="horizon_db"
-    )
+    connection = sqlite3.connect("horizon_db.sqlite3")
     return connection

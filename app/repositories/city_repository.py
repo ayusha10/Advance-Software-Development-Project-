@@ -4,18 +4,19 @@ from app.models.city import City
 class CityRepository:
     def get_all_cities(self):
         connection = get_connection()
-        cursor = connection.cursor(dictionary=True)
+        connection.row_factory = __import__('sqlite3').Row
+        cursor = connection.cursor()
         query = "SELECT * FROM cities"
         cursor.execute(query)
         results = cursor.fetchall()
-        
+
         cities = []
         for result in results:
+            result = dict(result)
             cities.append(City(
                 id=result['id'],
                 name=result['name']
             ))
-        
         cursor.close()
         connection.close()
         return cities
@@ -23,7 +24,7 @@ class CityRepository:
     def add_city(self, city_name):
         connection = get_connection()
         cursor = connection.cursor()
-        query = "INSERT INTO cities (name) VALUES (%s)"
+        query = "INSERT INTO cities (name) VALUES (?)"
         cursor.execute(query, (city_name,))
         connection.commit()
         city_id = cursor.lastrowid
@@ -34,7 +35,7 @@ class CityRepository:
     def delete_city(self, city_id):
         connection = get_connection()
         cursor = connection.cursor()
-        query = "DELETE FROM cities WHERE id = %s"
+        query = "DELETE FROM cities WHERE id = ?"
         cursor.execute(query, (city_id,))
         connection.commit()
         cursor.close()

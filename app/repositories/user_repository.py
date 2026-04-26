@@ -6,11 +6,11 @@ class UserRepository:
         pass  # No need to store connection permanently
 
     def get_user_by_username(self, username):
-        # Get a new connection for each query
         connection = get_connection()
-        cursor = connection.cursor(dictionary=True)
+        connection.row_factory = __import__('sqlite3').Row
+        cursor = connection.cursor()
 
-        query = "SELECT * FROM users WHERE username = %s"
+        query = "SELECT * FROM users WHERE username = ?"
         cursor.execute(query, (username,))
         result = cursor.fetchone()
 
@@ -18,6 +18,8 @@ class UserRepository:
         connection.close()
 
         if result:
+            # Convert sqlite3.Row to dict for compatibility
+            result = dict(result)
             return app.models.user.User(
                 user_id=result.get('id'),
                 username=result.get('username'),
@@ -30,13 +32,15 @@ class UserRepository:
 
     def get_all_users(self):
         connection = get_connection()
-        cursor = connection.cursor(dictionary=True)
+        connection.row_factory = __import__('sqlite3').Row
+        cursor = connection.cursor()
         query = "SELECT * FROM users"
         cursor.execute(query)
         results = cursor.fetchall()
-        
+
         users = []
         for result in results:
+            result = dict(result)
             users.append(app.models.user.User(
                 user_id=result.get('id'),
                 username=result.get('username'),
@@ -53,7 +57,7 @@ class UserRepository:
     def add_user(self, user):
         connection = get_connection()
         cursor = connection.cursor()
-        query = "INSERT INTO users (username, password, role, assigned_cinema_id) VALUES (%s, %s, %s, %s)"
+        query = "INSERT INTO users (username, password, role, assigned_cinema_id) VALUES (?, ?, ?, ?)"
         cursor.execute(query, (user.username, user.password, user.role, user.assigned_cinema_id))
         connection.commit()
         user_id = cursor.lastrowid
@@ -64,7 +68,7 @@ class UserRepository:
     def update_user(self, user):
         connection = get_connection()
         cursor = connection.cursor()
-        query = "UPDATE users SET username = %s, password = %s, role = %s, assigned_cinema_id = %s WHERE id = %s"
+        query = "UPDATE users SET username = ?, password = ?, role = ?, assigned_cinema_id = ? WHERE id = ?"
         cursor.execute(query, (user.username, user.password, user.role, user.assigned_cinema_id, user.user_id))
         connection.commit()
         cursor.close()
@@ -73,7 +77,7 @@ class UserRepository:
     def delete_user(self, user_id):
         connection = get_connection()
         cursor = connection.cursor()
-        query = "DELETE FROM users WHERE id = %s"
+        query = "DELETE FROM users WHERE id = ?"
         cursor.execute(query, (user_id,))
         connection.commit()
         cursor.close()
