@@ -3,7 +3,7 @@ CREATE TABLE users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT UNIQUE NOT NULL,
     password TEXT NOT NULL,
-    role TEXT NOT NULL CHECK(role IN ('Admin', 'Manager', 'Booking-Staff')),
+    role TEXT NOT NULL CHECK(role IN ('Admin', 'Manager', 'Booking-Staff', 'Customer')),
     assigned_cinema_id INTEGER,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );

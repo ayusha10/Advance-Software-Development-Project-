@@ -107,9 +107,14 @@ class AdminPanel:
         screen_combo = ttk.Combobox(dialog, values=list(screen_map.keys()), state="readonly")
         screen_combo.pack()
 
-        tk.Label(dialog, text="Show Time (YYYY-MM-DD HH:MM:SS)").pack(pady=5)
+        tk.Label(dialog, text="Show Date (YYYY-MM-DD)").pack(pady=5)
+        date_entry = tk.Entry(dialog, width=30)
+        date_entry.insert(0, "2026-04-10")
+        date_entry.pack()
+
+        tk.Label(dialog, text="Show Time (HH:MM:SS)").pack(pady=5)
         time_entry = tk.Entry(dialog, width=30)
-        time_entry.insert(0, "2026-04-10 18:00:00")
+        time_entry.insert(0, "18:00:00")
         time_entry.pack()
 
         tk.Label(dialog, text="Base Price").pack(pady=5)
@@ -120,11 +125,12 @@ class AdminPanel:
         def save_show():
             film_n = film_combo.get()
             screen_n = screen_combo.get()
+            sdate = date_entry.get()
             stime = time_entry.get()
             price = price_entry.get()
-            if film_n and screen_n and stime and price:
+            if film_n and screen_n and sdate and stime and price:
                 from app.models.show import Show
-                new_show = Show(None, film_map[film_n], screen_map[screen_n], stime, float(price))
+                new_show = Show(None, film_map[film_n], screen_map[screen_n], sdate, stime, float(price))
                 self.controller.add_show(new_show)
                 self.refresh_shows()
                 dialog.destroy()

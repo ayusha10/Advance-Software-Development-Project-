@@ -116,3 +116,21 @@ class AdminController:
 
     def delete_booking(self, booking_id):
         self.booking_repo.delete_booking(booking_id)
+
+    def get_bookings_by_user(self, user_id):
+        return self.booking_repo.get_bookings_by_user(user_id)
+
+    def get_show_by_id(self, show_id):
+        return self.show_repo.get_show_by_id(show_id)
+
+    def get_booked_seats_for_show(self, show_id):
+        return self.booking_repo.get_booked_seats_for_show(show_id)
+
+    def get_booked_seats_for_booking(self, booking_id):
+        return self.booking_repo.get_booked_seats_for_booking(booking_id)
+
+    def add_booked_seat(self, booking_id, show_id, seat_id):
+        return self.booking_repo.add_booked_seat(booking_id, show_id, seat_id)
+
+    def cancel_booking(self, booking_reference):
+        return self.booking_repo.cancel_booking(booking_reference)

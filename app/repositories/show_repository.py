@@ -27,6 +27,7 @@ class ShowRepository:
                 id=r['id'],
                 film_id=r['film_id'],
                 screen_id=r['screen_id'],
+                show_date=r['show_date'],
                 show_time=r['show_time'],
                 base_price=r['base_price'],
                 film_name=r['film_name'],
@@ -40,8 +41,8 @@ class ShowRepository:
     def add_show(self, show):
         connection = get_connection()
         cursor = connection.cursor()
-        query = "INSERT INTO shows (film_id, screen_id, show_time, base_price) VALUES (?, ?, ?, ?)"
-        cursor.execute(query, (show.film_id, show.screen_id, show.show_time, show.base_price))
+        query = "INSERT INTO shows (film_id, screen_id, show_date, show_time, base_price) VALUES (?, ?, ?, ?, ?)"
+        cursor.execute(query, (show.film_id, show.screen_id, show.show_date, show.show_time, show.base_price))
         connection.commit()
         show_id = cursor.lastrowid
         cursor.close()
@@ -56,3 +57,35 @@ class ShowRepository:
         connection.commit()
         cursor.close()
         connection.close()
+
+    def get_show_by_id(self, show_id):
+        connection = get_connection()
+        connection.row_factory = __import__('sqlite3').Row
+        cursor = connection.cursor()
+        query = """
+            SELECT s.*, f.name as film_name, c.name as cinema_name, sc.screen_number 
+            FROM shows s
+            JOIN films f ON s.film_id = f.id
+            JOIN screens sc ON s.screen_id = sc.id
+            JOIN cinemas c ON sc.cinema_id = c.id
+            WHERE s.id = ?
+        """
+        cursor.execute(query, (show_id,))
+        result = cursor.fetchone()
+        cursor.close()
+        connection.close()
+        
+        if result:
+            r = dict(result)
+            return Show(
+                id=r['id'],
+                film_id=r['film_id'],
+                screen_id=r['screen_id'],
+                show_date=r['show_date'],
+                show_time=r['show_time'],
+                base_price=r['base_price'],
+                film_name=r['film_name'],
+                cinema_name=r['cinema_name'],
+                screen_number=r['screen_number']
+            )
+        return None
