@@ -73,4 +73,5 @@ Thumbs.db
 tmp/
 *.sqlite3
 *.db
+*.sql
 horizon_db.backup.sqlite3
