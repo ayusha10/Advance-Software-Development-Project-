@@ -44,3 +44,13 @@ class FilmRepository:
         connection.commit()
         cursor.close()
         connection.close()
+
+    def update_film(self, film):
+        connection = get_connection()
+        cursor = connection.cursor()
+        query = "UPDATE films SET name = ?, genre = ?, age_rating = ?, description = ?, time_duration = ? WHERE id = ?"
+        cursor.execute(query, (film.name, film.genre, film.age_rating, film.description, film.time_duration, film.id))
+        connection.commit()
+        cursor.close()
+        connection.close()
+

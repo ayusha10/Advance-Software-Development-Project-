@@ -40,3 +40,13 @@ class CityRepository:
         connection.commit()
         cursor.close()
         connection.close()
+
+    def update_city(self, city_id, name):
+        connection = get_connection()
+        cursor = connection.cursor()
+        query = "UPDATE cities SET name = ? WHERE id = ?"
+        cursor.execute(query, (name, city_id))
+        connection.commit()
+        cursor.close()
+        connection.close()
+

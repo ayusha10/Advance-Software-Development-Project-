@@ -58,6 +58,15 @@ class ShowRepository:
         cursor.close()
         connection.close()
 
+    def update_show(self, show):
+        connection = get_connection()
+        cursor = connection.cursor()
+        query = "UPDATE shows SET film_id = ?, screen_id = ?, show_date = ?, show_time = ?, base_price = ? WHERE id = ?"
+        cursor.execute(query, (show.film_id, show.screen_id, show.show_date, show.show_time, show.base_price, show.id))
+        connection.commit()
+        cursor.close()
+        connection.close()
+
     def get_show_by_id(self, show_id):
         connection = get_connection()
         connection.row_factory = __import__('sqlite3').Row

@@ -28,6 +28,9 @@ class AdminController:
     def delete_city(self, city_id):
         self.city_repo.delete_city(city_id)
 
+    def update_city(self, city_id, name):
+        self.city_repo.update_city(city_id, name)
+
     # Film Management
     def get_all_films(self):
         return self.film_repo.get_all_films()
@@ -38,6 +41,9 @@ class AdminController:
     def delete_film(self, film_id):
         return self.film_repo.delete_film(film_id)
 
+    def update_film(self, film):
+        self.film_repo.update_film(film)
+
     # Show Management
     def get_all_shows(self, cinema_id=None):
         return self.show_repo.get_all_shows(cinema_id)
@@ -47,6 +53,9 @@ class AdminController:
 
     def delete_show(self, show_id):
         return self.show_repo.delete_show(show_id)
+
+    def update_show(self, show):
+        self.show_repo.update_show(show)
 
     # User & Registration
     def register_user(self, user):
