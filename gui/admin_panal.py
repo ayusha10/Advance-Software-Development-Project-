@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from app.controllers.admin_controller import AdminController
+from gui.theme import Theme
 
 class AdminPanel:
     def __init__(self, user):
@@ -8,7 +9,10 @@ class AdminPanel:
         self.controller = AdminController()
         self.root = tk.Tk()
         self.root.title(f"Admin Dashboard - Welcome {user.username}")
-        self.root.geometry("1000x700")
+        self.root.geometry("1100x800")
+        
+        # Apply Modern Theme
+        Theme.apply(self.root)
 
         # Layout
         self.create_widgets()
@@ -17,10 +21,15 @@ class AdminPanel:
 
     def create_widgets(self):
         # Header with Logout
-        header_frame = tk.Frame(self.root)
-        header_frame.pack(fill='x', padx=10, pady=5)
-        tk.Label(header_frame, text=f"Welcome, {self.user.username} (Admin)", font=("Arial", 12)).pack(side=tk.LEFT)
-        tk.Button(header_frame, text="Logout", command=self.logout).pack(side=tk.RIGHT)
+        header_frame = ttk.Frame(self.root)
+        header_frame.pack(fill='x', padx=20, pady=20)
+        
+        ttk.Label(header_frame, text=f"HORIZON CINEMA ADMIN", style="Header.TLabel").pack(side=tk.LEFT)
+        
+        user_info = ttk.Frame(header_frame)
+        user_info.pack(side=tk.RIGHT)
+        ttk.Label(user_info, text=f"Logged in as: {self.user.username} (Admin)", font=Theme.FONT_BOLD).pack(side=tk.LEFT, padx=10)
+        ttk.Button(user_info, text="Logout", command=self.logout, style="Danger.TButton").pack(side=tk.LEFT)
 
         # Create Notebook for tabs
         self.notebook = ttk.Notebook(self.root)
@@ -61,21 +70,21 @@ class AdminPanel:
         LoginWindow()
 
     def setup_show_tab(self):
-        tk.Label(self.show_frame, text="Show Management", font=("Arial", 16, "bold")).pack(pady=10)
+        ttk.Label(self.show_frame, text="Show Management", font=("Arial", 16, "bold")).pack(fill='x', pady=10)
         
         cols = ('ID', 'Film', 'Cinema', 'Screen', 'Time', 'Price')
         self.show_tree = ttk.Treeview(self.show_frame, columns=cols, show='headings')
         for col in cols:
-            self.show_tree.heading(col, text=col)
-            self.show_tree.column(col, width=120)
+            self.show_tree.heading(col, text=col, anchor='center')
+            self.show_tree.column(col, width=120, anchor='center')
         self.show_tree.pack(expand=True, fill='both', padx=10, pady=10)
 
-        btn_frame = tk.Frame(self.show_frame)
-        btn_frame.pack(pady=10)
-        tk.Button(btn_frame, text="Refresh", command=self.refresh_shows).pack(side=tk.LEFT, padx=5)
-        tk.Button(btn_frame, text="Add Show", command=self.add_show_dialog).pack(side=tk.LEFT, padx=5)
-        tk.Button(btn_frame, text="Delete Show", command=self.delete_show).pack(side=tk.LEFT, padx=5)
-        tk.Button(btn_frame, text="Edit Show", command=self.edit_show_dialog).pack(side=tk.LEFT, padx=5)
+        btn_frame = ttk.Frame(self.show_frame)
+        btn_frame.pack(fill='x', pady=10)
+        ttk.Button(btn_frame, text="Refresh", command=self.refresh_shows).pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="Add Show", command=self.add_show_dialog).pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="Delete Show", command=self.delete_show).pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="Edit Show", command=self.edit_show_dialog).pack(side=tk.LEFT, padx=5)
 
         self.refresh_shows()
 
@@ -91,37 +100,39 @@ class AdminPanel:
     def add_show_dialog(self):
         dialog = tk.Toplevel(self.root)
         dialog.title("Schedule New Show")
-        dialog.geometry("350x450")
+        dialog.geometry("500x700")
+        container = ttk.Frame(dialog, padding=30)
+        container.pack(expand=True, fill="both")
 
         # Film Selection
-        tk.Label(dialog, text="Select Film").pack(pady=5)
+        ttk.Label(container, text="Select Film").pack(fill='x', pady=5)
         films = self.controller.get_all_films()
         film_map = {f.name: f.id for f in films}
-        film_combo = ttk.Combobox(dialog, values=list(film_map.keys()), state="readonly")
-        film_combo.pack()
+        film_combo = ttk.Combobox(container, values=list(film_map.keys()), state="readonly")
+        film_combo.pack(fill='x')
 
         # Screen Selection
-        tk.Label(dialog, text="Select Screen").pack(pady=5)
+        ttk.Label(container, text="Select Screen").pack(fill='x', pady=5)
         screens = self.controller.get_all_screens()
         # Admin can see all screens, so we show Cinema - Screen X
         screen_map = {f"{s.get_cinema_name()} - Screen {s.screen_number}": s.id for s in screens}
-        screen_combo = ttk.Combobox(dialog, values=list(screen_map.keys()), state="readonly")
-        screen_combo.pack()
+        screen_combo = ttk.Combobox(container, values=list(screen_map.keys()), state="readonly")
+        screen_combo.pack(fill='x')
 
-        tk.Label(dialog, text="Show Date (YYYY-MM-DD)").pack(pady=5)
-        date_entry = tk.Entry(dialog, width=30)
+        ttk.Label(container, text="Show Date (YYYY-MM-DD)").pack(fill='x', pady=5)
+        date_entry = ttk.Entry(container, width=30)
         date_entry.insert(0, "2026-04-10")
-        date_entry.pack()
+        date_entry.pack(fill='x')
 
-        tk.Label(dialog, text="Show Time (HH:MM:SS)").pack(pady=5)
-        time_entry = tk.Entry(dialog, width=30)
+        ttk.Label(container, text="Show Time (HH:MM:SS)").pack(fill='x', pady=5)
+        time_entry = ttk.Entry(container, width=30)
         time_entry.insert(0, "18:00:00")
-        time_entry.pack()
+        time_entry.pack(fill='x')
 
-        tk.Label(dialog, text="Base Price").pack(pady=5)
-        price_entry = tk.Entry(dialog, width=30)
+        ttk.Label(container, text="Base Price").pack(fill='x', pady=5)
+        price_entry = ttk.Entry(container, width=30)
         price_entry.insert(0, "10.00")
-        price_entry.pack()
+        price_entry.pack(fill='x')
 
         def save_show():
             film_n = film_combo.get()
@@ -138,7 +149,7 @@ class AdminPanel:
             else:
                 messagebox.showwarning("Warning", "All fields are required")
 
-        tk.Button(dialog, text="Save Show", command=save_show).pack(pady=20)
+        ttk.Button(container, text="Save Show", command=save_show).pack(fill='x', pady=20)
 
     def delete_show(self):
         selected = self.show_tree.selection()
@@ -164,39 +175,41 @@ class AdminPanel:
 
         dialog = tk.Toplevel(self.root)
         dialog.title("Edit Show")
-        dialog.geometry("350x450")
+        dialog.geometry("500x700")
+        container = ttk.Frame(dialog, padding=30)
+        container.pack(expand=True, fill="both")
 
-        tk.Label(dialog, text="Select Film").pack(pady=5)
+        ttk.Label(container, text="Select Film").pack(fill='x', pady=5)
         films = self.controller.get_all_films()
         film_map = {f.name: f.id for f in films}
-        film_combo = ttk.Combobox(dialog, values=list(film_map.keys()), state="readonly")
-        film_combo.pack()
+        film_combo = ttk.Combobox(container, values=list(film_map.keys()), state="readonly")
+        film_combo.pack(fill='x')
         if show.film_name in film_map:
             film_combo.set(show.film_name)
 
-        tk.Label(dialog, text="Select Screen").pack(pady=5)
+        ttk.Label(container, text="Select Screen").pack(fill='x', pady=5)
         screens = self.controller.get_all_screens()
         screen_map = {f"{s.get_cinema_name()} - Screen {s.screen_number}": s.id for s in screens}
-        screen_combo = ttk.Combobox(dialog, values=list(screen_map.keys()), state="readonly")
-        screen_combo.pack()
+        screen_combo = ttk.Combobox(container, values=list(screen_map.keys()), state="readonly")
+        screen_combo.pack(fill='x')
         screen_label = f"{show.cinema_name} - Screen {show.screen_number}"
         if screen_label in screen_map:
             screen_combo.set(screen_label)
 
-        tk.Label(dialog, text="Show Date (YYYY-MM-DD)").pack(pady=5)
-        date_entry = tk.Entry(dialog, width=30)
+        ttk.Label(container, text="Show Date (YYYY-MM-DD)").pack(fill='x', pady=5)
+        date_entry = ttk.Entry(container, width=30)
         date_entry.insert(0, show.show_date)
-        date_entry.pack()
+        date_entry.pack(fill='x')
 
-        tk.Label(dialog, text="Show Time (HH:MM:SS)").pack(pady=5)
-        time_entry = tk.Entry(dialog, width=30)
+        ttk.Label(container, text="Show Time (HH:MM:SS)").pack(fill='x', pady=5)
+        time_entry = ttk.Entry(container, width=30)
         time_entry.insert(0, show.show_time)
-        time_entry.pack()
+        time_entry.pack(fill='x')
 
-        tk.Label(dialog, text="Base Price").pack(pady=5)
-        price_entry = tk.Entry(dialog, width=30)
+        ttk.Label(container, text="Base Price").pack(fill='x', pady=5)
+        price_entry = ttk.Entry(container, width=30)
         price_entry.insert(0, str(show.base_price))
-        price_entry.pack()
+        price_entry.pack(fill='x')
 
         def update_show():
             film_n = film_combo.get()
@@ -213,24 +226,24 @@ class AdminPanel:
             else:
                 messagebox.showwarning("Warning", "All fields are required")
 
-        tk.Button(dialog, text="Update Show", command=update_show).pack(pady=20)
+        ttk.Button(container, text="Update Show", command=update_show).pack(fill='x', pady=20)
 
     def setup_city_tab(self):
-        tk.Label(self.city_frame, text="City Management", font=("Arial", 16, "bold")).pack(pady=10)
+        ttk.Label(self.city_frame, text="City Management", font=("Arial", 16, "bold")).pack(fill='x', pady=10)
         
         cols = ('ID', 'Name')
         self.city_tree = ttk.Treeview(self.city_frame, columns=cols, show='headings')
         for col in cols:
-            self.city_tree.heading(col, text=col)
-            self.city_tree.column(col, width=300)
+            self.city_tree.heading(col, text=col, anchor='center')
+            self.city_tree.column(col, width=300, anchor='center')
         self.city_tree.pack(expand=True, fill='both', padx=10, pady=10)
 
-        btn_frame = tk.Frame(self.city_frame)
-        btn_frame.pack(pady=10)
-        tk.Button(btn_frame, text="Refresh", command=self.refresh_cities).pack(side=tk.LEFT, padx=5)
-        tk.Button(btn_frame, text="Add City", command=self.add_city_dialog).pack(side=tk.LEFT, padx=5)
-        tk.Button(btn_frame, text="Delete City", command=self.delete_city).pack(side=tk.LEFT, padx=5)
-        tk.Button(btn_frame, text="Edit City", command=self.edit_city_dialog).pack(side=tk.LEFT, padx=5)
+        btn_frame = ttk.Frame(self.city_frame)
+        btn_frame.pack(fill='x', pady=10)
+        ttk.Button(btn_frame, text="Refresh", command=self.refresh_cities).pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="Add City", command=self.add_city_dialog).pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="Delete City", command=self.delete_city).pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="Edit City", command=self.edit_city_dialog).pack(side=tk.LEFT, padx=5)
 
         self.refresh_cities()
 
@@ -244,11 +257,13 @@ class AdminPanel:
     def add_city_dialog(self):
         dialog = tk.Toplevel(self.root)
         dialog.title("Add New City")
-        dialog.geometry("300x150")
+        dialog.geometry("450x550")
+        container = ttk.Frame(dialog, padding=30)
+        container.pack(expand=True, fill="both")
 
-        tk.Label(dialog, text="City Name").pack(pady=5)
-        name_entry = tk.Entry(dialog)
-        name_entry.pack()
+        ttk.Label(container, text="City Name").pack(fill='x', pady=5)
+        name_entry = ttk.Entry(container)
+        name_entry.pack(fill='x')
 
         def save_city():
             name = name_entry.get()
@@ -260,7 +275,7 @@ class AdminPanel:
             else:
                 messagebox.showwarning("Warning", "City name is required")
 
-        tk.Button(dialog, text="Save", command=save_city).pack(pady=10)
+        ttk.Button(container, text="Save", command=save_city).pack(fill='x', pady=10)
 
     def delete_city(self):
         selected = self.city_tree.selection()
@@ -283,12 +298,14 @@ class AdminPanel:
 
         dialog = tk.Toplevel(self.root)
         dialog.title("Edit City")
-        dialog.geometry("300x150")
+        dialog.geometry("450x550")
+        container = ttk.Frame(dialog, padding=30)
+        container.pack(expand=True, fill="both")
 
-        tk.Label(dialog, text="City Name").pack(pady=5)
-        name_entry = tk.Entry(dialog)
+        ttk.Label(container, text="City Name").pack(fill='x', pady=5)
+        name_entry = ttk.Entry(container)
         name_entry.insert(0, current_name)
-        name_entry.pack()
+        name_entry.pack(fill='x')
 
         def update_city():
             name = name_entry.get()
@@ -299,25 +316,25 @@ class AdminPanel:
             else:
                 messagebox.showwarning("Warning", "City name is required")
 
-        tk.Button(dialog, text="Update", command=update_city).pack(pady=10)
+        ttk.Button(container, text="Update", command=update_city).pack(fill='x', pady=10)
 
 
     def setup_film_tab(self):
-        tk.Label(self.film_frame, text="Film Management", font=("Arial", 16, "bold")).pack(pady=10)
+        ttk.Label(self.film_frame, text="Film Management", font=("Arial", 16, "bold")).pack(fill='x', pady=10)
         
         cols = ('ID', 'Name', 'Genre', 'Rating', 'Duration')
         self.film_tree = ttk.Treeview(self.film_frame, columns=cols, show='headings')
         for col in cols:
-            self.film_tree.heading(col, text=col)
-            self.film_tree.column(col, width=120)
+            self.film_tree.heading(col, text=col, anchor='center')
+            self.film_tree.column(col, width=120, anchor='center')
         self.film_tree.pack(expand=True, fill='both', padx=10, pady=10)
 
-        btn_frame = tk.Frame(self.film_frame)
-        btn_frame.pack(pady=10)
-        tk.Button(btn_frame, text="Refresh", command=self.refresh_films).pack(side=tk.LEFT, padx=5)
-        tk.Button(btn_frame, text="Add Film", command=self.add_film_dialog).pack(side=tk.LEFT, padx=5)
-        tk.Button(btn_frame, text="Delete Film", command=self.delete_film).pack(side=tk.LEFT, padx=5)
-        tk.Button(btn_frame, text="Edit Film", command=self.edit_film_dialog).pack(side=tk.LEFT, padx=5)
+        btn_frame = ttk.Frame(self.film_frame)
+        btn_frame.pack(fill='x', pady=10)
+        ttk.Button(btn_frame, text="Refresh", command=self.refresh_films).pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="Add Film", command=self.add_film_dialog).pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="Delete Film", command=self.delete_film).pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="Edit Film", command=self.edit_film_dialog).pack(side=tk.LEFT, padx=5)
 
         self.refresh_films()
 
@@ -331,27 +348,29 @@ class AdminPanel:
     def add_film_dialog(self):
         dialog = tk.Toplevel(self.root)
         dialog.title("Add New Film")
-        dialog.geometry("350x450")
+        dialog.geometry("500x700")
+        container = ttk.Frame(dialog, padding=30)
+        container.pack(expand=True, fill="both")
 
-        tk.Label(dialog, text="Name").pack(pady=5)
-        name_entry = tk.Entry(dialog, width=30)
-        name_entry.pack()
+        ttk.Label(container, text="Name").pack(fill='x', pady=5)
+        name_entry = ttk.Entry(container, width=30)
+        name_entry.pack(fill='x')
 
-        tk.Label(dialog, text="Genre").pack(pady=5)
-        genre_entry = tk.Entry(dialog, width=30)
-        genre_entry.pack()
+        ttk.Label(container, text="Genre").pack(fill='x', pady=5)
+        genre_entry = ttk.Entry(container, width=30)
+        genre_entry.pack(fill='x')
 
-        tk.Label(dialog, text="Age Rating").pack(pady=5)
-        rating_entry = tk.Entry(dialog, width=30)
-        rating_entry.pack()
+        ttk.Label(container, text="Age Rating").pack(fill='x', pady=5)
+        rating_entry = ttk.Entry(container, width=30)
+        rating_entry.pack(fill='x')
 
-        tk.Label(dialog, text="Duration (mins)").pack(pady=5)
-        dur_entry = tk.Entry(dialog, width=30)
-        dur_entry.pack()
+        ttk.Label(container, text="Duration (mins)").pack(fill='x', pady=5)
+        dur_entry = ttk.Entry(container, width=30)
+        dur_entry.pack(fill='x')
 
-        tk.Label(dialog, text="Description").pack(pady=5)
-        desc_text = tk.Text(dialog, height=4, width=30)
-        desc_text.pack()
+        ttk.Label(container, text="Description").pack(fill='x', pady=5)
+        desc_text = tk.Text(container, height=4, width=30)
+        desc_text.pack(fill='x')
 
         def save_film():
             name = name_entry.get()
@@ -371,7 +390,7 @@ class AdminPanel:
             else:
                 messagebox.showwarning("Warning", "All fields except Description are required")
 
-        tk.Button(dialog, text="Save", command=save_film).pack(pady=20)
+        ttk.Button(container, text="Save", command=save_film).pack(fill='x', pady=20)
 
     def delete_film(self):
         selected = self.film_tree.selection()
@@ -403,32 +422,34 @@ class AdminPanel:
 
         dialog = tk.Toplevel(self.root)
         dialog.title("Edit Film")
-        dialog.geometry("350x450")
+        dialog.geometry("500x700")
+        container = ttk.Frame(dialog, padding=30)
+        container.pack(expand=True, fill="both")
 
-        tk.Label(dialog, text="Name").pack(pady=5)
-        name_entry = tk.Entry(dialog, width=30)
+        ttk.Label(container, text="Name").pack(fill='x', pady=5)
+        name_entry = ttk.Entry(container, width=30)
         name_entry.insert(0, film.name)
-        name_entry.pack()
+        name_entry.pack(fill='x')
 
-        tk.Label(dialog, text="Genre").pack(pady=5)
-        genre_entry = tk.Entry(dialog, width=30)
+        ttk.Label(container, text="Genre").pack(fill='x', pady=5)
+        genre_entry = ttk.Entry(container, width=30)
         genre_entry.insert(0, film.genre)
-        genre_entry.pack()
+        genre_entry.pack(fill='x')
 
-        tk.Label(dialog, text="Age Rating").pack(pady=5)
-        rating_entry = tk.Entry(dialog, width=30)
+        ttk.Label(container, text="Age Rating").pack(fill='x', pady=5)
+        rating_entry = ttk.Entry(container, width=30)
         rating_entry.insert(0, film.age_rating)
-        rating_entry.pack()
+        rating_entry.pack(fill='x')
 
-        tk.Label(dialog, text="Duration (mins)").pack(pady=5)
-        dur_entry = tk.Entry(dialog, width=30)
+        ttk.Label(container, text="Duration (mins)").pack(fill='x', pady=5)
+        dur_entry = ttk.Entry(container, width=30)
         dur_entry.insert(0, str(film.time_duration))
-        dur_entry.pack()
+        dur_entry.pack(fill='x')
 
-        tk.Label(dialog, text="Description").pack(pady=5)
-        desc_text = tk.Text(dialog, height=4, width=30)
+        ttk.Label(container, text="Description").pack(fill='x', pady=5)
+        desc_text = tk.Text(container, height=4, width=30)
         desc_text.insert("1.0", film.description or "")
-        desc_text.pack()
+        desc_text.pack(fill='x')
 
         def update_film():
             name = name_entry.get()
@@ -448,68 +469,87 @@ class AdminPanel:
             else:
                 messagebox.showwarning("Warning", "All fields except Description are required")
 
-        tk.Button(dialog, text="Update", command=update_film).pack(pady=20)
+        ttk.Button(container, text="Update", command=update_film).pack(fill='x', pady=20)
 
     def setup_user_tab(self):
-        tk.Label(self.user_frame, text="User Management", font=("Arial", 16, "bold")).pack(pady=10)
+        ttk.Label(self.user_frame, text="User Management", font=("Arial", 16, "bold")).pack(fill='x', pady=10)
         
         # Table (Treeview)
-        cols = ('ID', 'Username', 'Role', 'Created At')
+        cols = ('ID', 'Username', 'Role', 'City', 'Created At')
         self.user_tree = ttk.Treeview(self.user_frame, columns=cols, show='headings')
         for col in cols:
-            self.user_tree.heading(col, text=col)
-            self.user_tree.column(col, width=150)
+            self.user_tree.heading(col, text=col, anchor='center')
+            self.user_tree.column(col, width=150, anchor='center')
         self.user_tree.pack(expand=True, fill='both', padx=10, pady=10)
 
         # Buttons
-        btn_frame = tk.Frame(self.user_frame)
-        btn_frame.pack(pady=10)
-        tk.Button(btn_frame, text="Refresh", command=self.refresh_users).pack(side=tk.LEFT, padx=5)
-        tk.Button(btn_frame, text="Add User", command=self.add_user_dialog).pack(side=tk.LEFT, padx=5)
-        tk.Button(btn_frame, text="Delete User", command=self.delete_user).pack(side=tk.LEFT, padx=5)
-        tk.Button(btn_frame, text="Edit User", command=self.edit_user_dialog).pack(side=tk.LEFT, padx=5)
+        btn_frame = ttk.Frame(self.user_frame)
+        btn_frame.pack(fill='x', pady=10)
+        ttk.Button(btn_frame, text="Refresh", command=self.refresh_users).pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="Add User", command=self.add_user_dialog).pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="Delete User", command=self.delete_user).pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="Edit User", command=self.edit_user_dialog).pack(side=tk.LEFT, padx=5)
 
         self.refresh_users()
 
     def refresh_users(self):
         for item in self.user_tree.get_children():
             self.user_tree.delete(item)
+        
         users = self.controller.get_all_users()
+        cities = self.controller.get_all_cities()
+        city_map = {c.id: c.name for c in cities}
+
         for u in users:
-            self.user_tree.insert('', tk.END, values=(u.user_id, u.username, u.role, u.created_at))
+            city_name = city_map.get(u.assigned_city_id, "N/A") if u.assigned_city_id else "N/A"
+            self.user_tree.insert('', tk.END, values=(u.user_id, u.username, u.role, city_name, u.created_at))
 
     def add_user_dialog(self):
         dialog = tk.Toplevel(self.root)
         dialog.title("Add New User")
-        dialog.geometry("300x250")
+        dialog.geometry("450x550")
+        container = ttk.Frame(dialog, padding=30)
+        container.pack(expand=True, fill="both")
 
-        tk.Label(dialog, text="Username").pack(pady=5)
-        username_entry = tk.Entry(dialog)
-        username_entry.pack()
+        ttk.Label(container, text="Username").pack(fill='x', pady=5)
+        username_entry = ttk.Entry(container)
+        username_entry.pack(fill='x')
 
-        tk.Label(dialog, text="Password").pack(pady=5)
-        password_entry = tk.Entry(dialog, show="*")
-        password_entry.pack()
+        ttk.Label(container, text="Password").pack(fill='x', pady=5)
+        password_entry = ttk.Entry(container, show="*")
+        password_entry.pack(fill='x')
 
-        tk.Label(dialog, text="Role").pack(pady=5)
+        ttk.Label(container, text="Role").pack(fill='x', pady=5)
         role_var = tk.StringVar(value="Admin")
-        role_opt = ttk.OptionMenu(dialog, role_var, "Admin", "Admin", "Manager", "Booking-Staff")
-        role_opt.pack()
+        role_opt = ttk.OptionMenu(container, role_var, "Admin", "Admin", "Manager", "Customer")
+        role_opt.pack(fill='x')
+
+        ttk.Label(container, text="City (For Managers)").pack(fill='x', pady=5)
+        cities = self.controller.get_all_cities()
+        city_map = {c.name: c.id for c in cities}
+        city_combo = ttk.Combobox(container, values=list(city_map.keys()), state="readonly")
+        city_combo.pack(fill='x')
 
         def save_user():
             username = username_entry.get()
             password = password_entry.get()
             role = role_var.get()
+            city_name = city_combo.get()
+            city_id = city_map.get(city_name) if role == "Manager" else None
+
             if username and password:
+                if role == "Manager" and not city_id:
+                    messagebox.showwarning("Warning", "City is required for Managers")
+                    return
                 from app.models.user import User
-                new_user = User(None, username, password, role, None)
+                new_user = User(None, username, password, role, None, assigned_city_id=city_id)
                 self.controller.add_user(new_user)
                 self.refresh_users()
                 dialog.destroy()
             else:
                 messagebox.showwarning("Warning", "All fields are required")
 
-        tk.Button(dialog, text="Save", command=save_user).pack(pady=20)
+        ttk.Button(container, text="Save", command=save_user).pack(fill='x', pady=20)
 
     def delete_user(self):
         selected = self.user_tree.selection()
@@ -533,30 +573,50 @@ class AdminPanel:
 
         dialog = tk.Toplevel(self.root)
         dialog.title("Edit User")
-        dialog.geometry("300x250")
+        dialog.geometry("450x550")
+        container = ttk.Frame(dialog, padding=30)
+        container.pack(expand=True, fill="both")
 
-        tk.Label(dialog, text="Username").pack(pady=5)
-        username_entry = tk.Entry(dialog)
+        ttk.Label(container, text="Username").pack(fill='x', pady=5)
+        username_entry = ttk.Entry(container)
         username_entry.insert(0, current_username)
-        username_entry.pack()
+        username_entry.pack(fill='x')
 
-        tk.Label(dialog, text="Password (leave blank to keep current)").pack(pady=5)
-        password_entry = tk.Entry(dialog, show="*")
-        password_entry.pack()
+        ttk.Label(container, text="Password (leave blank to keep current)").pack(fill='x', pady=5)
+        password_entry = ttk.Entry(container, show="*")
+        password_entry.pack(fill='x')
 
-        tk.Label(dialog, text="Role").pack(pady=5)
+        ttk.Label(container, text="Role").pack(fill='x', pady=5)
         role_var = tk.StringVar(value=current_role)
-        role_opt = ttk.OptionMenu(dialog, role_var, current_role, "Admin", "Manager", "Booking-Staff")
-        role_opt.pack()
+        role_opt = ttk.OptionMenu(container, role_var, current_role, "Admin", "Manager", "Customer")
+        role_opt.pack(fill='x')
+
+        ttk.Label(container, text="City (For Managers)").pack(fill='x', pady=5)
+        cities = self.controller.get_all_cities()
+        city_map = {c.name: c.id for c in cities}
+        city_combo = ttk.Combobox(container, values=list(city_map.keys()), state="readonly")
+        city_combo.pack(fill='x')
+        
+        # Pre-select city if user is a manager
+        users = self.controller.get_all_users()
+        target_user = next((u for u in users if u.user_id == user_id), None)
+        if target_user and target_user.role == "Manager" and target_user.assigned_city_id:
+            assigned_city = next((c.name for c in cities if c.id == target_user.assigned_city_id), None)
+            if assigned_city:
+                city_combo.set(assigned_city)
 
         def update_user():
             username = username_entry.get()
             password = password_entry.get()
             role = role_var.get()
+            city_name = city_combo.get()
+            city_id = city_map.get(city_name) if role == "Manager" else None
+
             if username:
+                if role == "Manager" and not city_id:
+                    messagebox.showwarning("Warning", "City is required for Managers")
+                    return
                 from app.models.user import User
-                users = self.controller.get_all_users()
-                target_user = next((u for u in users if u.user_id == user_id), None)
                 if not target_user:
                     messagebox.showerror("Error", "User not found")
                     return
@@ -564,38 +624,35 @@ class AdminPanel:
                 # If password is provided, we update it, else keep old
                 new_pass = password if password else target_user.password
                 
-                updated_user = User(user_id, username, new_pass, role, target_user.created_at)
-                # update_user method in user repo updates the password_hash directly.
-                # If it expects plain text, we would need to hash it. Assuming the repository handles it or we pass it as is.
-                # Looking at original add_user, password is passed as is.
+                updated_user = User(user_id, username, new_pass, role, target_user.created_at, assigned_city_id=city_id)
                 self.controller.update_user(updated_user)
                 self.refresh_users()
                 dialog.destroy()
             else:
                 messagebox.showwarning("Warning", "Username is required")
 
-        tk.Button(dialog, text="Update", command=update_user).pack(pady=20)
+        ttk.Button(container, text="Update", command=update_user).pack(fill='x', pady=20)
 
 
     # --- Stubs for other tabs ---
     def setup_cinema_tab(self):
-        tk.Label(self.cinema_frame, text="Cinema Management", font=("Arial", 16, "bold")).pack(pady=10)
+        ttk.Label(self.cinema_frame, text="Cinema Management", font=("Arial", 16, "bold")).pack(fill='x', pady=10)
         
         # Table (Treeview)
         cols = ('ID', 'Name', 'City')
         self.cinema_tree = ttk.Treeview(self.cinema_frame, columns=cols, show='headings')
         for col in cols:
-            self.cinema_tree.heading(col, text=col)
-            self.cinema_tree.column(col, width=150)
+            self.cinema_tree.heading(col, text=col, anchor='center')
+            self.cinema_tree.column(col, width=150, anchor='center')
         self.cinema_tree.pack(expand=True, fill='both', padx=10, pady=10)
 
         # Buttons
-        btn_frame = tk.Frame(self.cinema_frame)
-        btn_frame.pack(pady=10)
-        tk.Button(btn_frame, text="Refresh", command=self.refresh_cinemas).pack(side=tk.LEFT, padx=5)
-        tk.Button(btn_frame, text="Add Cinema", command=self.add_cinema_dialog).pack(side=tk.LEFT, padx=5)
-        tk.Button(btn_frame, text="Delete Cinema", command=self.delete_cinema).pack(side=tk.LEFT, padx=5)
-        tk.Button(btn_frame, text="Edit Cinema", command=self.edit_cinema_dialog).pack(side=tk.LEFT, padx=5)
+        btn_frame = ttk.Frame(self.cinema_frame)
+        btn_frame.pack(fill='x', pady=10)
+        ttk.Button(btn_frame, text="Refresh", command=self.refresh_cinemas).pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="Add Cinema", command=self.add_cinema_dialog).pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="Delete Cinema", command=self.delete_cinema).pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="Edit Cinema", command=self.edit_cinema_dialog).pack(side=tk.LEFT, padx=5)
 
         self.refresh_cinemas()
 
@@ -609,19 +666,21 @@ class AdminPanel:
     def add_cinema_dialog(self):
         dialog = tk.Toplevel(self.root)
         dialog.title("Add New Cinema")
-        dialog.geometry("300x200")
+        dialog.geometry("450x550")
+        container = ttk.Frame(dialog, padding=30)
+        container.pack(expand=True, fill="both")
 
-        tk.Label(dialog, text="Name").pack(pady=5)
-        name_entry = tk.Entry(dialog)
-        name_entry.pack()
+        ttk.Label(container, text="Name").pack(fill='x', pady=5)
+        name_entry = ttk.Entry(container)
+        name_entry.pack(fill='x')
 
-        tk.Label(dialog, text="City").pack(pady=5)
+        ttk.Label(container, text="City").pack(fill='x', pady=5)
         cities = self.controller.get_all_cities()
         city_names = [c.name for c in cities]
         city_map = {c.name: c.id for c in cities}
         
-        city_combo = ttk.Combobox(dialog, values=city_names, state="readonly")
-        city_combo.pack()
+        city_combo = ttk.Combobox(container, values=city_names, state="readonly")
+        city_combo.pack(fill='x')
         if city_names:
             city_combo.current(0)
 
@@ -638,7 +697,7 @@ class AdminPanel:
             else:
                 messagebox.showwarning("Warning", "All fields are required")
 
-        tk.Button(dialog, text="Save", command=save_cinema).pack(pady=20)
+        ttk.Button(container, text="Save", command=save_cinema).pack(fill='x', pady=20)
 
     def delete_cinema(self):
         selected = self.cinema_tree.selection()
@@ -662,20 +721,22 @@ class AdminPanel:
 
         dialog = tk.Toplevel(self.root)
         dialog.title("Edit Cinema")
-        dialog.geometry("300x200")
+        dialog.geometry("450x550")
+        container = ttk.Frame(dialog, padding=30)
+        container.pack(expand=True, fill="both")
 
-        tk.Label(dialog, text="Name").pack(pady=5)
-        name_entry = tk.Entry(dialog)
+        ttk.Label(container, text="Name").pack(fill='x', pady=5)
+        name_entry = ttk.Entry(container)
         name_entry.insert(0, current_name)
-        name_entry.pack()
+        name_entry.pack(fill='x')
 
-        tk.Label(dialog, text="City").pack(pady=5)
+        ttk.Label(container, text="City").pack(fill='x', pady=5)
         cities = self.controller.get_all_cities()
         city_names = [c.name for c in cities]
         city_map = {c.name: c.id for c in cities}
         
-        city_combo = ttk.Combobox(dialog, values=city_names, state="readonly")
-        city_combo.pack()
+        city_combo = ttk.Combobox(container, values=city_names, state="readonly")
+        city_combo.pack(fill='x')
         if current_city in city_names:
             city_combo.set(current_city)
         elif city_names:
@@ -694,25 +755,25 @@ class AdminPanel:
             else:
                 messagebox.showwarning("Warning", "All fields are required")
 
-        tk.Button(dialog, text="Update", command=update_cinema).pack(pady=20)
+        ttk.Button(container, text="Update", command=update_cinema).pack(fill='x', pady=20)
 
 
     def setup_screen_tab(self):
-        tk.Label(self.screen_frame, text="Screen Management", font=("Arial", 16, "bold")).pack(pady=10)
+        ttk.Label(self.screen_frame, text="Screen Management", font=("Arial", 16, "bold")).pack(fill='x', pady=10)
         
         cols = ('ID', 'Cinema', 'Number', 'Capacity')
         self.screen_tree = ttk.Treeview(self.screen_frame, columns=cols, show='headings')
         for col in cols:
-            self.screen_tree.heading(col, text=col)
-            self.screen_tree.column(col, width=150)
+            self.screen_tree.heading(col, text=col, anchor='center')
+            self.screen_tree.column(col, width=150, anchor='center')
         self.screen_tree.pack(expand=True, fill='both', padx=10, pady=10)
 
-        btn_frame = tk.Frame(self.screen_frame)
-        btn_frame.pack(pady=10)
-        tk.Button(btn_frame, text="Refresh", command=self.refresh_screens).pack(side=tk.LEFT, padx=5)
-        tk.Button(btn_frame, text="Add Screen", command=self.add_screen_dialog).pack(side=tk.LEFT, padx=5)
-        tk.Button(btn_frame, text="Delete Screen", command=self.delete_screen).pack(side=tk.LEFT, padx=5)
-        tk.Button(btn_frame, text="Edit Screen", command=self.edit_screen_dialog).pack(side=tk.LEFT, padx=5)
+        btn_frame = ttk.Frame(self.screen_frame)
+        btn_frame.pack(fill='x', pady=10)
+        ttk.Button(btn_frame, text="Refresh", command=self.refresh_screens).pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="Add Screen", command=self.add_screen_dialog).pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="Delete Screen", command=self.delete_screen).pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="Edit Screen", command=self.edit_screen_dialog).pack(side=tk.LEFT, padx=5)
 
         self.refresh_screens()
 
@@ -726,25 +787,27 @@ class AdminPanel:
     def add_screen_dialog(self):
         dialog = tk.Toplevel(self.root)
         dialog.title("Add New Screen")
-        dialog.geometry("300x250")
+        dialog.geometry("450x550")
+        container = ttk.Frame(dialog, padding=30)
+        container.pack(expand=True, fill="both")
 
-        tk.Label(dialog, text="Cinema").pack(pady=5)
+        ttk.Label(container, text="Cinema").pack(fill='x', pady=5)
         cinemas = self.controller.get_all_cinemas()
         cinema_names = [c.name for c in cinemas]
         cinema_map = {c.name: c.id for c in cinemas}
         
-        cinema_combo = ttk.Combobox(dialog, values=cinema_names, state="readonly")
-        cinema_combo.pack()
+        cinema_combo = ttk.Combobox(container, values=cinema_names, state="readonly")
+        cinema_combo.pack(fill='x')
         if cinema_names:
             cinema_combo.current(0)
 
-        tk.Label(dialog, text="Screen Number").pack(pady=5)
-        num_entry = tk.Entry(dialog)
-        num_entry.pack()
+        ttk.Label(container, text="Screen Number").pack(fill='x', pady=5)
+        num_entry = ttk.Entry(container)
+        num_entry.pack(fill='x')
 
-        tk.Label(dialog, text="Total Seats").pack(pady=5)
-        seats_entry = tk.Entry(dialog)
-        seats_entry.pack()
+        ttk.Label(container, text="Total Seats").pack(fill='x', pady=5)
+        seats_entry = ttk.Entry(container)
+        seats_entry.pack(fill='x')
 
         def save_screen():
             cinema_name = cinema_combo.get()
@@ -760,7 +823,7 @@ class AdminPanel:
             else:
                 messagebox.showwarning("Warning", "All fields are required")
 
-        tk.Button(dialog, text="Save", command=save_screen).pack(pady=20)
+        ttk.Button(container, text="Save", command=save_screen).pack(fill='x', pady=20)
 
     def delete_screen(self):
         selected = self.screen_tree.selection()
@@ -785,29 +848,31 @@ class AdminPanel:
 
         dialog = tk.Toplevel(self.root)
         dialog.title("Edit Screen")
-        dialog.geometry("300x250")
+        dialog.geometry("450x550")
+        container = ttk.Frame(dialog, padding=30)
+        container.pack(expand=True, fill="both")
 
-        tk.Label(dialog, text="Cinema").pack(pady=5)
+        ttk.Label(container, text="Cinema").pack(fill='x', pady=5)
         cinemas = self.controller.get_all_cinemas()
         cinema_names = [c.name for c in cinemas]
         cinema_map = {c.name: c.id for c in cinemas}
         
-        cinema_combo = ttk.Combobox(dialog, values=cinema_names, state="readonly")
-        cinema_combo.pack()
+        cinema_combo = ttk.Combobox(container, values=cinema_names, state="readonly")
+        cinema_combo.pack(fill='x')
         if current_cinema in cinema_names:
             cinema_combo.set(current_cinema)
         elif cinema_names:
             cinema_combo.current(0)
 
-        tk.Label(dialog, text="Screen Number").pack(pady=5)
-        num_entry = tk.Entry(dialog)
+        ttk.Label(container, text="Screen Number").pack(fill='x', pady=5)
+        num_entry = ttk.Entry(container)
         num_entry.insert(0, str(current_num))
-        num_entry.pack()
+        num_entry.pack(fill='x')
 
-        tk.Label(dialog, text="Total Seats").pack(pady=5)
-        seats_entry = tk.Entry(dialog)
+        ttk.Label(container, text="Total Seats").pack(fill='x', pady=5)
+        seats_entry = ttk.Entry(container)
         seats_entry.insert(0, str(current_seats))
-        seats_entry.pack()
+        seats_entry.pack(fill='x')
 
         def update_screen():
             cinema_name = cinema_combo.get()
@@ -823,25 +888,25 @@ class AdminPanel:
             else:
                 messagebox.showwarning("Warning", "All fields are required")
 
-        tk.Button(dialog, text="Update", command=update_screen).pack(pady=20)
+        ttk.Button(container, text="Update", command=update_screen).pack(fill='x', pady=20)
 
 
     def setup_seat_tab(self):
-        tk.Label(self.seat_frame, text="Seat Management", font=("Arial", 16, "bold")).pack(pady=10)
+        ttk.Label(self.seat_frame, text="Seat Management", font=("Arial", 16, "bold")).pack(fill='x', pady=10)
         
         cols = ('ID', 'Screen', 'Number', 'Type')
         self.seat_tree = ttk.Treeview(self.seat_frame, columns=cols, show='headings')
         for col in cols:
-            self.seat_tree.heading(col, text=col)
-            self.seat_tree.column(col, width=200)
+            self.seat_tree.heading(col, text=col, anchor='center')
+            self.seat_tree.column(col, width=200, anchor='center')
         self.seat_tree.pack(expand=True, fill='both', padx=10, pady=10)
 
-        btn_frame = tk.Frame(self.seat_frame)
-        btn_frame.pack(pady=10)
-        tk.Button(btn_frame, text="Refresh", command=self.refresh_seats).pack(side=tk.LEFT, padx=5)
-        tk.Button(btn_frame, text="Add Seat", command=self.add_seat_dialog).pack(side=tk.LEFT, padx=5)
-        tk.Button(btn_frame, text="Delete Seat", command=self.delete_seat).pack(side=tk.LEFT, padx=5)
-        tk.Button(btn_frame, text="Edit Seat", command=self.edit_seat_dialog).pack(side=tk.LEFT, padx=5)
+        btn_frame = ttk.Frame(self.seat_frame)
+        btn_frame.pack(fill='x', pady=10)
+        ttk.Button(btn_frame, text="Refresh", command=self.refresh_seats).pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="Add Seat", command=self.add_seat_dialog).pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="Delete Seat", command=self.delete_seat).pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="Edit Seat", command=self.edit_seat_dialog).pack(side=tk.LEFT, padx=5)
 
         self.refresh_seats()
 
@@ -855,9 +920,11 @@ class AdminPanel:
     def add_seat_dialog(self):
         dialog = tk.Toplevel(self.root)
         dialog.title("Add New Seat")
-        dialog.geometry("300x250")
+        dialog.geometry("450x550")
+        container = ttk.Frame(dialog, padding=30)
+        container.pack(expand=True, fill="both")
 
-        tk.Label(dialog, text="Screen").pack(pady=5)
+        ttk.Label(container, text="Screen").pack(fill='x', pady=5)
         screens = self.controller.get_all_screens()
         # We'll show "Cinema Name - Screen Number" for clarity
         # Requirement: get_all_cinemas to lookup names
@@ -867,19 +934,19 @@ class AdminPanel:
         screen_labels = [f"{c_map.get(s.cinema_id, 'Unknown')} - Screen {s.screen_number}" for s in screens]
         screen_map = {f"{c_map.get(s.cinema_id, 'Unknown')} - Screen {s.screen_number}": s.id for s in screens}
 
-        screen_combo = ttk.Combobox(dialog, values=screen_labels, state="readonly")
-        screen_combo.pack()
+        screen_combo = ttk.Combobox(container, values=screen_labels, state="readonly")
+        screen_combo.pack(fill='x')
         if screen_labels:
             screen_combo.current(0)
 
-        tk.Label(dialog, text="Seat Number (e.g. A1)").pack(pady=5)
-        num_entry = tk.Entry(dialog)
-        num_entry.pack()
+        ttk.Label(container, text="Seat Number (e.g. A1)").pack(fill='x', pady=5)
+        num_entry = ttk.Entry(container)
+        num_entry.pack(fill='x')
 
-        tk.Label(dialog, text="Type").pack(pady=5)
+        ttk.Label(container, text="Type").pack(fill='x', pady=5)
         type_var = tk.StringVar(value="Lower")
-        type_opt = ttk.OptionMenu(dialog, type_var, "Lower", "Lower", "Upper", "VIP")
-        type_opt.pack()
+        type_opt = ttk.OptionMenu(container, type_var, "Lower", "Lower", "Upper", "VIP")
+        type_opt.pack(fill='x')
 
         def save_seat():
             screen_label = screen_combo.get()
@@ -895,7 +962,7 @@ class AdminPanel:
             else:
                 messagebox.showwarning("Warning", "All fields are required")
 
-        tk.Button(dialog, text="Save", command=save_seat).pack(pady=20)
+        ttk.Button(container, text="Save", command=save_seat).pack(fill='x', pady=20)
 
     def delete_seat(self):
         selected = self.seat_tree.selection()
@@ -920,9 +987,11 @@ class AdminPanel:
 
         dialog = tk.Toplevel(self.root)
         dialog.title("Edit Seat")
-        dialog.geometry("300x250")
+        dialog.geometry("450x550")
+        container = ttk.Frame(dialog, padding=30)
+        container.pack(expand=True, fill="both")
 
-        tk.Label(dialog, text="Screen").pack(pady=5)
+        ttk.Label(container, text="Screen").pack(fill='x', pady=5)
         screens = self.controller.get_all_screens()
         cinemas = self.controller.get_all_cinemas()
         c_map = {c.id: c.name for c in cinemas}
@@ -930,22 +999,22 @@ class AdminPanel:
         screen_labels = [f"{c_map.get(s.cinema_id, 'Unknown')} - Screen {s.screen_number}" for s in screens]
         screen_map = {f"{c_map.get(s.cinema_id, 'Unknown')} - Screen {s.screen_number}": s.id for s in screens}
 
-        screen_combo = ttk.Combobox(dialog, values=screen_labels, state="readonly")
-        screen_combo.pack()
+        screen_combo = ttk.Combobox(container, values=screen_labels, state="readonly")
+        screen_combo.pack(fill='x')
         if current_screen_info in screen_labels:
             screen_combo.set(current_screen_info)
         elif screen_labels:
             screen_combo.current(0)
 
-        tk.Label(dialog, text="Seat Number (e.g. A1)").pack(pady=5)
-        num_entry = tk.Entry(dialog)
+        ttk.Label(container, text="Seat Number (e.g. A1)").pack(fill='x', pady=5)
+        num_entry = ttk.Entry(container)
         num_entry.insert(0, current_num)
-        num_entry.pack()
+        num_entry.pack(fill='x')
 
-        tk.Label(dialog, text="Type").pack(pady=5)
+        ttk.Label(container, text="Type").pack(fill='x', pady=5)
         type_var = tk.StringVar(value=current_type)
-        type_opt = ttk.OptionMenu(dialog, type_var, current_type, "Lower", "Upper", "VIP")
-        type_opt.pack()
+        type_opt = ttk.OptionMenu(container, type_var, current_type, "Lower", "Upper", "VIP")
+        type_opt.pack(fill='x')
 
         def update_seat():
             screen_label = screen_combo.get()
@@ -961,26 +1030,26 @@ class AdminPanel:
             else:
                 messagebox.showwarning("Warning", "All fields are required")
 
-        tk.Button(dialog, text="Update", command=update_seat).pack(pady=20)
+        ttk.Button(container, text="Update", command=update_seat).pack(fill='x', pady=20)
 
 
     def setup_booking_tab(self):
-        tk.Label(self.booking_frame, text="Booking Management", font=("Arial", 16, "bold")).pack(pady=10)
+        ttk.Label(self.booking_frame, text="Booking Management", font=("Arial", 16, "bold")).pack(fill='x', pady=10)
         
         # Table (Treeview)
         cols = ('ID', 'Ref', 'User ID', 'Show ID', 'Price', 'Status', 'Date')
         self.booking_tree = ttk.Treeview(self.booking_frame, columns=cols, show='headings')
         for col in cols:
-            self.booking_tree.heading(col, text=col)
-            self.booking_tree.column(col, width=120)
+            self.booking_tree.heading(col, text=col, anchor='center')
+            self.booking_tree.column(col, width=120, anchor='center')
         self.booking_tree.pack(expand=True, fill='both', padx=10, pady=10)
 
         # Buttons
-        btn_frame = tk.Frame(self.booking_frame)
-        btn_frame.pack(pady=10)
-        tk.Button(btn_frame, text="Refresh", command=self.refresh_bookings).pack(side=tk.LEFT, padx=5)
-        tk.Button(btn_frame, text="Cancel Booking", command=self.cancel_booking).pack(side=tk.LEFT, padx=5)
-        tk.Button(btn_frame, text="Edit Booking", command=self.edit_booking_dialog).pack(side=tk.LEFT, padx=5)
+        btn_frame = ttk.Frame(self.booking_frame)
+        btn_frame.pack(fill='x', pady=10)
+        ttk.Button(btn_frame, text="Refresh", command=self.refresh_bookings).pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="Cancel Booking", command=self.cancel_booking).pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="Edit Booking", command=self.edit_booking_dialog).pack(side=tk.LEFT, padx=5)
 
         self.refresh_bookings()
 
@@ -1020,14 +1089,16 @@ class AdminPanel:
 
         dialog = tk.Toplevel(self.root)
         dialog.title("Edit Booking")
-        dialog.geometry("300x200")
+        dialog.geometry("450x550")
+        container = ttk.Frame(dialog, padding=30)
+        container.pack(expand=True, fill="both")
 
-        tk.Label(dialog, text=f"Booking Ref: {ref}").pack(pady=5)
+        ttk.Label(container, text=f"Booking Ref: {ref}").pack(fill='x', pady=5)
         
-        tk.Label(dialog, text="Status").pack(pady=5)
+        ttk.Label(container, text="Status").pack(fill='x', pady=5)
         status_var = tk.StringVar(value=current_status)
-        status_opt = ttk.OptionMenu(dialog, status_var, current_status, "Confirmed", "Cancelled", "Pending")
-        status_opt.pack()
+        status_opt = ttk.OptionMenu(container, status_var, current_status, "Confirmed", "Cancelled", "Pending")
+        status_opt.pack(fill='x')
 
         def update_booking():
             status = status_var.get()
@@ -1040,7 +1111,7 @@ class AdminPanel:
             else:
                 messagebox.showwarning("Warning", "Status is required")
 
-        tk.Button(dialog, text="Update", command=update_booking).pack(pady=20)
+        ttk.Button(container, text="Update", command=update_booking).pack(fill='x', pady=20)
 
 
 if __name__ == "__main__":

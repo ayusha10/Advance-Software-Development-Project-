@@ -26,7 +26,7 @@ class UserRepository:
                 password=result.get('password'),
                 role=result.get('role'),
                 created_at=result.get('created_at'),
-                assigned_cinema_id=result.get('assigned_cinema_id')
+                assigned_city_id=result.get('assigned_city_id')
             )
         return None
 
@@ -47,7 +47,7 @@ class UserRepository:
                 password=result.get('password'),
                 role=result.get('role'),
                 created_at=result.get('created_at'),
-                assigned_cinema_id=result.get('assigned_cinema_id')
+                assigned_city_id=result.get('assigned_city_id')
             ))
         
         cursor.close()
@@ -57,8 +57,8 @@ class UserRepository:
     def add_user(self, user):
         connection = get_connection()
         cursor = connection.cursor()
-        query = "INSERT INTO users (username, password, role, assigned_cinema_id) VALUES (?, ?, ?, ?)"
-        cursor.execute(query, (user.username, user.password, user.role, user.assigned_cinema_id))
+        query = "INSERT INTO users (username, password, role, assigned_city_id) VALUES (?, ?, ?, ?)"
+        cursor.execute(query, (user.username, user.password, user.role, user.assigned_city_id))
         connection.commit()
         user_id = cursor.lastrowid
         cursor.close()
@@ -68,8 +68,8 @@ class UserRepository:
     def update_user(self, user):
         connection = get_connection()
         cursor = connection.cursor()
-        query = "UPDATE users SET username = ?, password = ?, role = ?, assigned_cinema_id = ? WHERE id = ?"
-        cursor.execute(query, (user.username, user.password, user.role, user.assigned_cinema_id, user.user_id))
+        query = "UPDATE users SET username = ?, password = ?, role = ?, assigned_city_id = ? WHERE id = ?"
+        cursor.execute(query, (user.username, user.password, user.role, user.assigned_city_id, user.user_id))
         connection.commit()
         cursor.close()
         connection.close()

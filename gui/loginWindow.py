@@ -1,39 +1,54 @@
-import tkinter as tk 
-from tkinter import messagebox 
-
+import tkinter as tk
+from tkinter import ttk, messagebox 
 from app.controllers.auth_controller import AuthController
+from gui.theme import Theme
 class LoginWindow:
     def __init__(self):
         self.controller = AuthController()
         self.root = tk.Tk()
         self.root.title("Horizon Cinema Login")
-        self.root.geometry("300x200")
+        self.root.geometry("400x450")
+        
+        # Apply Modern Theme
+        Theme.apply(self.root)
 
-        tk.Label(self.root, text="Username").pack()
-        self.username_entry = tk.Entry(self.root)
-        self.username_entry.pack()
+        # Main Container with padding
+        container = ttk.Frame(self.root, padding=40)
+        container.pack(expand=True, fill='both')
 
-        tk.Label(self.root, text="Password").pack()
-        self.password_entry = tk.Entry(self.root, show="*")
-        self.password_entry.pack()
+        ttk.Label(container, text="HORIZON CINEMA", style="Header.TLabel").pack(fill='x', pady=(0, 30))
 
-        tk.Button(self.root, text="Login", command=self.login).pack(pady=10)
-        tk.Button(self.root, text="Register as Customer", command=self.open_register_dialog).pack(pady=5)
+        ttk.Label(container, text="Username").pack(anchor='w')
+        self.username_entry = ttk.Entry(container, font=Theme.FONT_MAIN)
+        self.username_entry.pack(fill='x', pady=(5, 15))
+
+        ttk.Label(container, text="Password").pack(anchor='w')
+        self.password_entry = ttk.Entry(container, show="*", font=Theme.FONT_MAIN)
+        self.password_entry.pack(fill='x', pady=(5, 30))
+
+        ttk.Button(container, text="Login", command=self.login, style="Accent.TButton").pack(fill='x', pady=(0, 10))
+        ttk.Button(container, text="Register as Customer", command=self.open_register_dialog).pack(fill='x')
 
         self.root.mainloop()
 
     def open_register_dialog(self):
         dialog = tk.Toplevel(self.root)
         dialog.title("Customer Registration")
-        dialog.geometry("300x250")
+        dialog.geometry("500x650")
+        Theme.apply(dialog)
 
-        tk.Label(dialog, text="Username").pack(pady=5)
-        u_entry = tk.Entry(dialog)
-        u_entry.pack()
+        container = ttk.Frame(dialog, padding=30)
+        container.pack(expand=True, fill='both')
 
-        tk.Label(dialog, text="Password").pack(pady=5)
-        p_entry = tk.Entry(dialog, show="*")
-        p_entry.pack()
+        ttk.Label(container, text="Registration", style="Header.TLabel").pack(fill='x', pady=(0, 20))
+
+        ttk.Label(container, text="Username").pack(anchor='w')
+        u_entry = ttk.Entry(container, font=Theme.FONT_MAIN)
+        u_entry.pack(fill='x', pady=(5, 15))
+
+        ttk.Label(container, text="Password").pack(anchor='w')
+        p_entry = ttk.Entry(container, show="*", font=Theme.FONT_MAIN)
+        p_entry.pack(fill='x', pady=(5, 30))
 
         def register():
             username = u_entry.get()
@@ -50,7 +65,7 @@ class LoginWindow:
             else:
                 messagebox.showwarning("Warning", "All fields are required")
 
-        tk.Button(dialog, text="Register", command=register).pack(pady=20)
+        ttk.Button(container, text="Register", command=register, style="Success.TButton").pack(fill='x')
 
     def login(self):
         username = self.username_entry.get()

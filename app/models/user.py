@@ -1,11 +1,11 @@
 class User:
-    def __init__(self, user_id, username, password, role, created_at=None, assigned_cinema_id=None):
+    def __init__(self, user_id, username, password, role, created_at=None, assigned_city_id=None):
         self.user_id = user_id
         self.username = username 
         self.password = password
         self.role = role
         self.created_at = created_at 
-        self.assigned_cinema_id = assigned_cinema_id
+        self.assigned_city_id = assigned_city_id
 
     #getters methods 
 
@@ -24,8 +24,8 @@ class User:
     def get_created_at(self):
         return self.created_at
 
-    def get_assigned_cinema_id(self):
-        return self.assigned_cinema_id
+    def get_assigned_city_id(self):
+        return self.assigned_city_id
 
  #ROLES 
 
@@ -37,7 +37,4 @@ class User:
     
     def is_manager(self):
         return self.role == 'Manager'
-    
-    def is_staff(self):
-        return self.role == 'Staff-Booking'
-    
+
