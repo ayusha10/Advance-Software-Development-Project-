@@ -7,7 +7,16 @@ class ShowRepository:
         connection.row_factory = __import__('sqlite3').Row
         cursor = connection.cursor()
         query = """
-            SELECT s.*, f.name as film_name, c.name as cinema_name, sc.screen_number 
+            SELECT s.*, f.name as film_name, c.name as cinema_name, sc.screen_number, sc.total_seats,
+            (SELECT COUNT(*) FROM booked_seats bs 
+             JOIN bookings b ON bs.booking_id = b.id 
+             WHERE bs.show_id = s.id AND b.status != 'CANCELLED') as booked_count,
+            (SELECT COUNT(*) FROM seats st WHERE st.screen_id = s.screen_id AND st.seat_type = 'Lower') as lower_total,
+            (SELECT COUNT(*) FROM seats st WHERE st.screen_id = s.screen_id AND st.seat_type = 'Upper') as upper_total,
+            (SELECT COUNT(*) FROM seats st WHERE st.screen_id = s.screen_id AND st.seat_type = 'VIP') as vip_total,
+            (SELECT COUNT(*) FROM booked_seats bs JOIN bookings b ON bs.booking_id = b.id JOIN seats st ON bs.seat_id = st.id WHERE bs.show_id = s.id AND b.status != 'CANCELLED' AND st.seat_type = 'Lower') as lower_booked,
+            (SELECT COUNT(*) FROM booked_seats bs JOIN bookings b ON bs.booking_id = b.id JOIN seats st ON bs.seat_id = st.id WHERE bs.show_id = s.id AND b.status != 'CANCELLED' AND st.seat_type = 'Upper') as upper_booked,
+            (SELECT COUNT(*) FROM booked_seats bs JOIN bookings b ON bs.booking_id = b.id JOIN seats st ON bs.seat_id = st.id WHERE bs.show_id = s.id AND b.status != 'CANCELLED' AND st.seat_type = 'VIP') as vip_booked
             FROM shows s
             JOIN films f ON s.film_id = f.id
             JOIN screens sc ON s.screen_id = sc.id
@@ -23,6 +32,10 @@ class ShowRepository:
         shows = []
         for r in results:
             r = dict(r)
+            available = r['total_seats'] - r['booked_count']
+            lower_av = r['lower_total'] - r['lower_booked']
+            upper_av = r['upper_total'] - r['upper_booked']
+            vip_av = r['vip_total'] - r['vip_booked']
             shows.append(Show(
                 id=r['id'],
                 film_id=r['film_id'],
@@ -32,7 +45,11 @@ class ShowRepository:
                 base_price=r['base_price'],
                 film_name=r['film_name'],
                 cinema_name=r['cinema_name'],
-                screen_number=r['screen_number']
+                screen_number=r['screen_number'],
+                available_seats=available,
+                lower_available=lower_av,
+                upper_available=upper_av,
+                vip_available=vip_av
             ))
         cursor.close()
         connection.close()
@@ -72,7 +89,16 @@ class ShowRepository:
         connection.row_factory = __import__('sqlite3').Row
         cursor = connection.cursor()
         query = """
-            SELECT s.*, f.name as film_name, c.name as cinema_name, sc.screen_number 
+            SELECT s.*, f.name as film_name, c.name as cinema_name, sc.screen_number, sc.total_seats,
+            (SELECT COUNT(*) FROM booked_seats bs 
+             JOIN bookings b ON bs.booking_id = b.id 
+             WHERE bs.show_id = s.id AND b.status != 'CANCELLED') as booked_count,
+            (SELECT COUNT(*) FROM seats st WHERE st.screen_id = s.screen_id AND st.seat_type = 'Lower') as lower_total,
+            (SELECT COUNT(*) FROM seats st WHERE st.screen_id = s.screen_id AND st.seat_type = 'Upper') as upper_total,
+            (SELECT COUNT(*) FROM seats st WHERE st.screen_id = s.screen_id AND st.seat_type = 'VIP') as vip_total,
+            (SELECT COUNT(*) FROM booked_seats bs JOIN bookings b ON bs.booking_id = b.id JOIN seats st ON bs.seat_id = st.id WHERE bs.show_id = s.id AND b.status != 'CANCELLED' AND st.seat_type = 'Lower') as lower_booked,
+            (SELECT COUNT(*) FROM booked_seats bs JOIN bookings b ON bs.booking_id = b.id JOIN seats st ON bs.seat_id = st.id WHERE bs.show_id = s.id AND b.status != 'CANCELLED' AND st.seat_type = 'Upper') as upper_booked,
+            (SELECT COUNT(*) FROM booked_seats bs JOIN bookings b ON bs.booking_id = b.id JOIN seats st ON bs.seat_id = st.id WHERE bs.show_id = s.id AND b.status != 'CANCELLED' AND st.seat_type = 'VIP') as vip_booked
             FROM shows s
             JOIN films f ON s.film_id = f.id
             JOIN screens sc ON s.screen_id = sc.id
@@ -86,6 +112,10 @@ class ShowRepository:
         
         if result:
             r = dict(result)
+            available = r['total_seats'] - r['booked_count']
+            lower_av = r['lower_total'] - r['lower_booked']
+            upper_av = r['upper_total'] - r['upper_booked']
+            vip_av = r['vip_total'] - r['vip_booked']
             return Show(
                 id=r['id'],
                 film_id=r['film_id'],
@@ -95,6 +125,10 @@ class ShowRepository:
                 base_price=r['base_price'],
                 film_name=r['film_name'],
                 cinema_name=r['cinema_name'],
-                screen_number=r['screen_number']
+                screen_number=r['screen_number'],
+                available_seats=available,
+                lower_available=lower_av,
+                upper_available=upper_av,
+                vip_available=vip_av
             )
         return None

@@ -1,5 +1,5 @@
 class Show:
-    def __init__(self, id, film_id, screen_id, show_date, show_time, base_price, film_name=None, cinema_name=None, screen_number=None):
+    def __init__(self, id, film_id, screen_id, show_date, show_time, base_price, film_name=None, cinema_name=None, screen_number=None, available_seats=0, lower_available=0, upper_available=0, vip_available=0):
         self.id = id
         self.film_id = film_id
         self.screen_id = screen_id
@@ -11,6 +11,10 @@ class Show:
         self.film_name = film_name
         self.cinema_name = cinema_name
         self.screen_number = screen_number
+        self.available_seats = available_seats
+        self.lower_available = lower_available
+        self.upper_available = upper_available
+        self.vip_available = vip_available
 
     def get_id(self):
         return self.id

@@ -75,7 +75,7 @@ class ManagerPanel:
     def setup_show_tab(self):
         ttk.Label(self.show_frame, text="Show Management", font=("Arial", 16, "bold")).pack(fill='x', pady=10)
         
-        cols = ('ID', 'Film', 'Screen', 'Time', 'Price')
+        cols = ('ID', 'Film', 'Screen', 'Time', 'Available', 'Price')
         self.show_tree = ttk.Treeview(self.show_frame, columns=cols, show='headings')
         for col in cols:
             self.show_tree.heading(col, text=col, anchor='center')
@@ -103,7 +103,7 @@ class ManagerPanel:
         for s in all_shows:
             if s.screen_id in valid_screens:
                 self.show_tree.insert('', tk.END, values=(
-                    s.id, s.film_name, s.screen_number, s.show_time, s.base_price
+                    s.id, s.film_name, s.screen_number, s.show_time, s.available_seats, s.base_price
                 ))
 
     def add_show_dialog(self):
@@ -765,7 +765,7 @@ class ManagerPanel:
     def setup_booking_tab(self):
         ttk.Label(self.booking_frame, text="Booking Management", font=("Arial", 16, "bold")).pack(fill='x', pady=10)
         
-        cols = ('ID', 'Reference', 'User ID', 'Show ID', 'Status', 'Date')
+        cols = ('ID', 'Reference', 'User', 'Movie', 'Seats', 'Status', 'Date')
         self.booking_tree = ttk.Treeview(self.booking_frame, columns=cols, show='headings')
         for col in cols:
             self.booking_tree.heading(col, text=col, anchor='center')
@@ -793,7 +793,7 @@ class ManagerPanel:
         for b in bookings:
             if b.show_id in valid_shows:
                 self.booking_tree.insert('', tk.END, values=(
-                    b.id, b.booking_ref, b.user_id, b.show_id, b.status, b.booking_date
+                    b.id, b.booking_ref, b.username, b.movie_name, b.seats, b.status, b.booking_date
                 ))
 
     def cancel_booking(self):

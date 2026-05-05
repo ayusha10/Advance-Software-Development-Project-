@@ -82,7 +82,7 @@ class LoginWindow:
             elif user.role == 'Manager':
                 from gui.manager_panal import ManagerPanel
                 ManagerPanel(user)
-            elif user.role == 'Customer':
+            elif user.role == 'Customer' or user.role == 'Booking-Staff':
                 from gui.customer_panel import CustomerPanel
                 CustomerPanel(user)
             else:

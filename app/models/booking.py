@@ -1,5 +1,5 @@
 class Booking:
-    def __init__(self, id, booking_ref, user_id, show_id, promo_id, total_price, service_fee, status, booking_date, created_at):
+    def __init__(self, id, booking_ref, user_id, show_id, promo_id, total_price, service_fee, status, booking_date, created_at, movie_name=None, cinema_name=None, username=None, seats=None):
         self.id = id
         self.booking_ref = booking_ref
         self.user_id = user_id
@@ -10,6 +10,10 @@ class Booking:
         self.status = status
         self.booking_date = booking_date
         self.created_at = created_at
+        self.movie_name = movie_name
+        self.cinema_name = cinema_name
+        self.username = username
+        self.seats = seats
 
     def get_id(self):
         return self.id

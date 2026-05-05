@@ -44,6 +44,16 @@ class ScreenRepository:
         cursor.execute(query, (screen.cinema_id, screen.screen_number, screen.total_seats))
         connection.commit()
         screen_id = cursor.lastrowid
+        
+        # Automatically generate seats for this screen
+        # User requested: like a1, a2...
+        for i in range(1, screen.total_seats + 1):
+            seat_num = f"a{i}"
+            # Default to 'Lower' type as per initial data pattern
+            cursor.execute("INSERT INTO seats (screen_id, seat_number, seat_type) VALUES (?, ?, ?)", 
+                           (screen_id, seat_num, "Lower"))
+        
+        connection.commit()
         cursor.close()
         connection.close()
         return screen_id

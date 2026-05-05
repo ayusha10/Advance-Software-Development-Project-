@@ -74,11 +74,11 @@ class CustomerPanel:
     def setup_shows_tab(self):
         ttk.Label(self.shows_frame, text="Available Shows", font=("Arial", 16, "bold")).pack(fill='x', pady=10)
         
-        cols = ('ID', 'Movie', 'Cinema', 'Screen', 'Date', 'Time', 'Price')
+        cols = ('ID', 'Movie', 'Cinema', 'Screen', 'Date', 'Time', 'Lower', 'Upper', 'VIP', 'Price')
         self.shows_tree = ttk.Treeview(self.shows_frame, columns=cols, show='headings', height=15)
         for col in cols:
             self.shows_tree.heading(col, text=col, anchor='center')
-            self.shows_tree.column(col, width=120, anchor='center')
+            self.shows_tree.column(col, width=100, anchor='center')
         self.shows_tree.pack(expand=True, fill='both', padx=10, pady=5)
         
         ttk.Button(self.shows_frame, text="Refresh Shows", command=self.refresh_shows).pack(fill='x', pady=10)
@@ -93,6 +93,7 @@ class CustomerPanel:
             self.shows_tree.insert('', tk.END, values=(
                 show.id, show.film_name, show.cinema_name, 
                 show.screen_number, show.show_date, show.show_time, 
+                show.lower_available, show.upper_available, show.vip_available,
                 f"${show.base_price}"
             ))
 
@@ -103,11 +104,11 @@ class CustomerPanel:
         show_frame = tk.LabelFrame(self.booking_frame, text="Select Show")
         show_frame.pack(fill='x', padx=10, pady=5)
         
-        cols = ('ID', 'Movie', 'Cinema', 'Screen', 'Date', 'Time', 'Price')
+        cols = ('ID', 'Movie', 'Cinema', 'Screen', 'Date', 'Time', 'Lower', 'Upper', 'VIP', 'Price')
         self.booking_shows_tree = ttk.Treeview(show_frame, columns=cols, show='headings', height=8)
         for col in cols:
             self.booking_shows_tree.heading(col, text=col, anchor='center')
-            self.booking_shows_tree.column(col, width=100, anchor='center')
+            self.booking_shows_tree.column(col, width=90, anchor='center')
         self.booking_shows_tree.pack(expand=True, fill='both', padx=5, pady=5)
         self.booking_shows_tree.bind('<<TreeviewSelect>>', self.on_show_select_for_booking)
         
@@ -129,7 +130,7 @@ class CustomerPanel:
         btn_frame = ttk.Frame(ticket_frame)
         btn_frame.grid(row=2, column=0, columnspan=2, pady=10)
         ttk.Button(btn_frame, text="Refresh Shows", command=self.refresh_booking_shows).pack(side=tk.LEFT, padx=5)
-        ttk.Button(btn_frame, text="Book Selected Seats", command=self.book_tickets, bg="green", fg="white").pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="Book Selected Seats", command=self.book_tickets, style="Success.TButton").pack(side=tk.LEFT, padx=5)
         
         ticket_frame.grid_rowconfigure(1, weight=1)
         ticket_frame.grid_columnconfigure(1, weight=1)
@@ -145,6 +146,7 @@ class CustomerPanel:
             self.booking_shows_tree.insert('', tk.END, values=(
                 show.id, show.film_name, show.cinema_name, 
                 show.screen_number, show.show_date, show.show_time, 
+                show.lower_available, show.upper_available, show.vip_available,
                 f"${show.base_price}"
             ))
 
@@ -153,14 +155,16 @@ class CustomerPanel:
         if not selected:
             return
         
-        show_id = self.booking_shows_tree.item(selected[0])['values'][0]
-        screen_num = self.booking_shows_tree.item(selected[0])['values'][3]
+        # Treeview returns values as strings, cast to appropriate types
+        item_values = self.booking_shows_tree.item(selected[0])['values']
+        show_id = int(item_values[0])
+        screen_num = int(item_values[3])
         
         # Find screen_id from screen_num
         screens = self.controller.get_all_screens()
         screen_id = None
         for sc in screens:
-            if sc.screen_number == screen_num:
+            if int(sc.screen_number) == screen_num:
                 screen_id = sc.id
                 break
         
@@ -176,7 +180,7 @@ class CustomerPanel:
         
         # Get booked seats for this show
         booked_seats = self.controller.get_booked_seats_for_show(show_id)
-        booked_seat_ids = {bs.seat_id for bs in booked_seats}
+        booked_seat_ids = {bs['seat_id'] for bs in booked_seats}
         
         # Show available seats
         for seat in screen_seats:
@@ -200,21 +204,25 @@ class CustomerPanel:
             messagebox.showwarning("Warning", f"Please select exactly {num_tickets} seat(s)")
             return
         
-        show_id = self.booking_shows_tree.item(selected_show[0])['values'][0]
-        show_price = float(self.booking_shows_tree.item(selected_show[0])['values'][6].replace('$', ''))
+        # Treeview returns values as strings, cast to appropriate types
+        item_values = self.booking_shows_tree.item(selected_show[0])['values']
+        show_id = int(item_values[0])
+        # Index 9 is Price (was 7)
+        show_price_str = str(item_values[9]).replace('$', '')
+        show_price = float(show_price_str)
         
         # Get selected seat details
         selected_seat_texts = [self.seats_listbox.get(i) for i in selected_seats]
         
         # Find screen_id for the show
         shows = self.controller.get_all_shows()
-        show = next((s for s in shows if s.id == show_id), None)
+        show = next((s for s in shows if int(s.id) == show_id), None)
         if not show:
-            messagebox.showerror("Error", "Show not found")
+            messagebox.showerror("Error", f"Show with ID {show_id} not found")
             return
         
         screens = self.controller.get_all_screens()
-        screen = next((s for s in screens if s.id == show.screen_id), None)
+        screen = next((s for s in screens if int(s.id) == int(show.screen_id)), None)
         if not screen:
             messagebox.showerror("Error", "Screen not found")
             return
@@ -224,7 +232,8 @@ class CustomerPanel:
         selected_seat_objects = []
         for seat_text in selected_seat_texts:
             seat_number = seat_text.split(' ')[0]
-            seat = next((s for s in all_seats if s.screen_id == screen.id and s.seat_number == seat_number), None)
+            # Ensure screen_id match handles types correctly
+            seat = next((s for s in all_seats if int(s.screen_id) == int(screen.id) and s.seat_number == seat_number), None)
             if seat:
                 selected_seat_objects.append(seat)
         
@@ -237,13 +246,14 @@ class CustomerPanel:
         seat_numbers = ', '.join([s.seat_number for s in selected_seat_objects])
         
         if not messagebox.askyesno("Confirm Booking", 
-            f"Book {num_tickets} ticket(s) for seats: {seat_numbers}\nTotal: ${total_price}\n\nConfirm?"):
+            f"Book {num_tickets} ticket(s) for seats: {seat_numbers}\nTotal: ${total_price:.2f}\n\nConfirm?"):
             return
         
         try:
             # Create booking
             import uuid
             from datetime import datetime
+            
             booking_ref = str(uuid.uuid4())[:8].upper()
             now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             
@@ -262,6 +272,8 @@ class CustomerPanel:
             self.refresh_my_bookings()
             
         except Exception as e:
+            import traceback
+            print(traceback.format_exc())
             messagebox.showerror("Error", f"Booking failed: {str(e)}")
 
     def setup_my_bookings_tab(self):
@@ -277,7 +289,7 @@ class CustomerPanel:
         btn_frame = ttk.Frame(self.my_bookings_frame)
         btn_frame.pack(fill='x', pady=10)
         ttk.Button(btn_frame, text="Refresh Bookings", command=self.refresh_my_bookings).pack(side=tk.LEFT, padx=5)
-        ttk.Button(btn_frame, text="Cancel Booking", command=self.cancel_booking, bg="red", fg="white").pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="Cancel Booking", command=self.cancel_booking, style="Danger.TButton").pack(side=tk.LEFT, padx=5)
         
         self.refresh_my_bookings()
 
@@ -292,12 +304,12 @@ class CustomerPanel:
             if show:
                 # Get booked seats for this booking
                 booked_seats = self.controller.get_booked_seats_for_booking(booking.id)
-                seat_numbers = ', '.join([bs.seat_number for bs in booked_seats])
+                seat_numbers = ', '.join([bs['seat_number'] for bs in booked_seats])
                 
                 self.my_bookings_tree.insert('', tk.END, values=(
-                    booking.booking_reference, show.film_name, show.cinema_name,
+                    booking.booking_ref, show.film_name, show.cinema_name,
                     show.show_date, show.show_time, seat_numbers, 
-                    booking.status, f"${booking.total_amount}"
+                    booking.status, f"${booking.total_price}"
                 ))
 
     def cancel_booking(self):

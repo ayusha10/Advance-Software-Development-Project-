@@ -6,17 +6,21 @@ class BookingRepository:
         connection = get_connection()
         connection.row_factory = __import__('sqlite3').Row
         cursor = connection.cursor()
+        base_query = """
+            SELECT b.*, f.name as movie_name, c.name as cinema_name, u.username,
+            (SELECT GROUP_CONCAT(s.seat_number) FROM booked_seats bs JOIN seats s ON bs.seat_id = s.id WHERE bs.booking_id = b.id) as seats
+            FROM bookings b
+            JOIN users u ON b.user_id = u.id
+            JOIN shows sh ON b.show_id = sh.id
+            JOIN films f ON sh.film_id = f.id
+            JOIN screens sc ON sh.screen_id = sc.id
+            JOIN cinemas c ON sc.cinema_id = c.id
+        """
         if cinema_id:
-            query = """
-                SELECT b.* 
-                FROM bookings b
-                JOIN shows s ON b.show_id = s.id
-                JOIN screens sc ON s.screen_id = sc.id
-                WHERE sc.cinema_id = ?
-            """
+            query = base_query + " WHERE sc.cinema_id = ?"
             cursor.execute(query, (cinema_id,))
         else:
-            query = "SELECT * FROM bookings"
+            query = base_query
             cursor.execute(query)
         results = cursor.fetchall()
 
@@ -33,7 +37,11 @@ class BookingRepository:
                 service_fee=result['service_fee'],
                 status=result['status'],
                 booking_date=result['booking_date'],
-                created_at=result['created_at']
+                created_at=result['created_at'],
+                movie_name=result['movie_name'],
+                cinema_name=result['cinema_name'],
+                username=result['username'],
+                seats=result['seats']
             ))
         cursor.close()
         connection.close()
@@ -76,7 +84,17 @@ class BookingRepository:
         connection = get_connection()
         connection.row_factory = __import__('sqlite3').Row
         cursor = connection.cursor()
-        query = "SELECT * FROM bookings WHERE user_id = ?"
+        query = """
+            SELECT b.*, f.name as movie_name, c.name as cinema_name, u.username,
+            (SELECT GROUP_CONCAT(s.seat_number) FROM booked_seats bs JOIN seats s ON bs.seat_id = s.id WHERE bs.booking_id = b.id) as seats
+            FROM bookings b
+            JOIN users u ON b.user_id = u.id
+            JOIN shows sh ON b.show_id = sh.id
+            JOIN films f ON sh.film_id = f.id
+            JOIN screens sc ON sh.screen_id = sc.id
+            JOIN cinemas c ON sc.cinema_id = c.id
+            WHERE b.user_id = ?
+        """
         cursor.execute(query, (user_id,))
         results = cursor.fetchall()
 
@@ -93,7 +111,11 @@ class BookingRepository:
                 service_fee=result['service_fee'],
                 status=result['status'],
                 booking_date=result['booking_date'],
-                created_at=result['created_at']
+                created_at=result['created_at'],
+                movie_name=result['movie_name'],
+                cinema_name=result['cinema_name'],
+                username=result['username'],
+                seats=result['seats']
             ))
         cursor.close()
         connection.close()
@@ -107,7 +129,8 @@ class BookingRepository:
             SELECT bs.*, s.seat_number 
             FROM booked_seats bs
             JOIN seats s ON bs.seat_id = s.id
-            WHERE bs.show_id = ?
+            JOIN bookings b ON bs.booking_id = b.id
+            WHERE bs.show_id = ? AND b.status != 'CANCELLED'
         """
         cursor.execute(query, (show_id,))
         results = cursor.fetchall()
