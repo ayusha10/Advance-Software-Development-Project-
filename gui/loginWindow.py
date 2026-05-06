@@ -77,12 +77,9 @@ class LoginWindow:
             self.root.destroy()
             try:
                 # Check Role
-                if user.role == 'Admin':
+                if user.role == 'Admin' or user.role == 'Manager':
                     from gui.admin_panal import AdminPanel
                     AdminPanel(user)
-                elif user.role == 'Manager':
-                    from gui.manager_panal import ManagerPanel
-                    ManagerPanel(user)
                 elif user.role == 'Customer':
                     from gui.customer_panel import CustomerPanel
                     CustomerPanel(user)

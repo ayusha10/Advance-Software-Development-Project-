@@ -10,7 +10,7 @@ CREATE TABLE users (
 
 -- Seed users: changed admin password and added sample customer and staff accounts
 INSERT INTO users (username, password, role) VALUES
-('admin26', 'Admin@2026!', 'Admin'),
+('admin26', 'admin1234', 'Admin'),
 ('manager26', 'manager@2026', 'Manager'),
 ('staff26', 'staff@26', 'Booking-Staff'),
 ('staff1', 'staff@2026', 'Booking-Staff'),

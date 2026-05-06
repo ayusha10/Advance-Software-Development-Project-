@@ -811,7 +811,9 @@ class ManagerPanel:
                     msg += f"\nRefund amount: £{refund}"
                 messagebox.showinfo("Success", msg)
             except Exception as e:
-                messagebox.showerror("Error", f"Failed to cancel booking: {str(e)}")            self.refresh_shows()            self.refresh_bookings()
+                messagebox.showerror("Error", f"Failed to cancel booking: {str(e)}")           
+                self.refresh_shows()            
+                self.refresh_bookings()
 
     def edit_booking_dialog(self):
         selected = self.booking_tree.selection()

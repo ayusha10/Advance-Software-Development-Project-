@@ -205,3 +205,63 @@ class BookingRepository:
                 created_at=r['created_at']
             )
         return None
+
+    def lock_seat(self, show_id, seat_id):
+        """Lock a seat for a show during booking process"""
+        conn = get_connection()
+        cur = conn.cursor()
+        try:
+            cur.execute("""
+                INSERT INTO seat_locks (show_id, seat_id)
+                VALUES (?, ?)
+            """, (show_id, seat_id))
+            conn.commit()
+            return True
+        except Exception as e:
+            conn.rollback()
+            return False
+        finally:
+            cur.close()
+            conn.close()
+
+    def unlock_seat(self, show_id, seat_id):
+        """Release a seat lock"""
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute("""
+            DELETE FROM seat_locks
+            WHERE show_id = ? AND seat_id = ?
+        """, (show_id, seat_id))
+        conn.commit()
+        cur.close()
+        conn.close()
+
+    def get_locked_seats_for_show(self, show_id):
+        """Get all currently locked seats for a show"""
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT seat_id, locked_at
+            FROM seat_locks
+            WHERE show_id = ?
+        """, (show_id,))
+        results = cur.fetchall()
+        cur.close()
+        conn.close()
+        return results
+
+    def cleanup_expired_locks(self, timeout_minutes=10):
+        """Remove lock entries older than timeout_minutes"""
+        from datetime import datetime, timedelta
+        expiry_time = (datetime.utcnow() - timedelta(minutes=timeout_minutes)).isoformat()
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute("""
+            DELETE FROM seat_locks
+            WHERE locked_at < ?
+        """, (expiry_time,))
+        deleted = cur.rowcount
+        conn.commit()
+        cur.close()
+        conn.close()
+        return deleted

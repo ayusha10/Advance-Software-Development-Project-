@@ -28,7 +28,7 @@ class AdminPanel:
         
         user_info = ttk.Frame(header_frame)
         user_info.pack(side=tk.RIGHT)
-        ttk.Label(user_info, text=f"Logged in as: {self.user.username} (Admin)", font=Theme.FONT_BOLD).pack(side=tk.LEFT, padx=10)
+        ttk.Label(user_info, text=f"Logged in as: {self.user.username} ({self.user.role})", font=Theme.FONT_BOLD).pack(side=tk.LEFT, padx=10)
         ttk.Button(user_info, text="Logout", command=self.logout, style="Danger.TButton").pack(side=tk.LEFT)
 
         # Create Notebook for tabs
@@ -44,6 +44,7 @@ class AdminPanel:
         self.film_frame = ttk.Frame(self.notebook)
         self.city_frame = ttk.Frame(self.notebook)
         self.show_frame = ttk.Frame(self.notebook)
+        self.reports_frame = ttk.Frame(self.notebook)
 
         self.notebook.add(self.user_frame, text="User Management")
         self.notebook.add(self.cinema_frame, text="Cinema Management")
@@ -53,6 +54,7 @@ class AdminPanel:
         self.notebook.add(self.film_frame, text="Film Management")
         self.notebook.add(self.city_frame, text="City Management")
         self.notebook.add(self.show_frame, text="Show Management")
+        self.notebook.add(self.reports_frame, text="Reports")
 
         # Initialize each tab
         self.setup_user_tab()
@@ -63,6 +65,7 @@ class AdminPanel:
         self.setup_film_tab()
         self.setup_city_tab()
         self.setup_show_tab()
+        self.setup_reports_tab()
 
     def logout(self):
         self.root.destroy()
@@ -82,9 +85,12 @@ class AdminPanel:
         btn_frame = ttk.Frame(self.show_frame)
         btn_frame.pack(fill='x', pady=10)
         ttk.Button(btn_frame, text="Refresh", command=self.refresh_shows).pack(side=tk.LEFT, padx=5)
-        ttk.Button(btn_frame, text="Add Show", command=self.add_show_dialog).pack(side=tk.LEFT, padx=5)
-        ttk.Button(btn_frame, text="Delete Show", command=self.delete_show).pack(side=tk.LEFT, padx=5)
-        ttk.Button(btn_frame, text="Edit Show", command=self.edit_show_dialog).pack(side=tk.LEFT, padx=5)
+        if self.user.role == 'Manager':
+            ttk.Button(btn_frame, text="Add Show", command=self.add_show_dialog).pack(side=tk.LEFT, padx=5)
+            ttk.Button(btn_frame, text="Edit Show", command=self.edit_show_dialog).pack(side=tk.LEFT, padx=5)
+            ttk.Button(btn_frame, text="Delete Show", command=self.delete_show).pack(side=tk.LEFT, padx=5)
+        else:
+            ttk.Label(btn_frame, text="(Show management is Manager-only)", foreground='gray').pack(side=tk.LEFT, padx=5)
 
         self.refresh_shows()
 
@@ -115,7 +121,6 @@ class AdminPanel:
         # Screen Selection
         ttk.Label(container, text="Select Screen").pack(fill='x', pady=5)
         screens = self.controller.get_all_screens()
-        # Admin can see all screens, so we show Cinema - Screen X
         screen_map = {f"{s.get_cinema_name()} - Screen {s.screen_number}": s.id for s in screens}
         screen_combo = ttk.Combobox(container, values=list(screen_map.keys()), state="readonly")
         screen_combo.pack(fill='x')
@@ -229,6 +234,8 @@ class AdminPanel:
 
         ttk.Button(container, text="Update Show", command=update_show).pack(fill='x', pady=20)
 
+
+
     def setup_city_tab(self):
         ttk.Label(self.city_frame, text="City Management", font=("Arial", 16, "bold")).pack(fill='x', pady=10)
         
@@ -323,11 +330,14 @@ class AdminPanel:
     def setup_film_tab(self):
         ttk.Label(self.film_frame, text="Film Management", font=("Arial", 16, "bold")).pack(fill='x', pady=10)
         
-        cols = ('ID', 'Name', 'Genre', 'Rating', 'Duration')
+        cols = ('ID', 'Name', 'Genre', 'Rating', 'Duration', 'Description')
         self.film_tree = ttk.Treeview(self.film_frame, columns=cols, show='headings')
         for col in cols:
             self.film_tree.heading(col, text=col, anchor='center')
-            self.film_tree.column(col, width=120, anchor='center')
+            if col == 'Description':
+                self.film_tree.column(col, width=300, anchor='w')
+            else:
+                self.film_tree.column(col, width=100, anchor='center')
         self.film_tree.pack(expand=True, fill='both', padx=10, pady=10)
 
         btn_frame = ttk.Frame(self.film_frame)
@@ -344,7 +354,7 @@ class AdminPanel:
             self.film_tree.delete(item)
         films = self.controller.get_all_films()
         for f in films:
-            self.film_tree.insert('', tk.END, values=(f.id, f.name, f.genre, f.age_rating, f.time_duration))
+            self.film_tree.insert('', tk.END, values=(f.id, f.name, f.genre, f.age_rating, f.time_duration, f.description if f.description else ''))
 
     def add_film_dialog(self):
         dialog = tk.Toplevel(self.root)
@@ -647,13 +657,16 @@ class AdminPanel:
             self.cinema_tree.column(col, width=150, anchor='center')
         self.cinema_tree.pack(expand=True, fill='both', padx=10, pady=10)
 
-        # Buttons
+        # Buttons - Manager can add/edit/delete, Admin view-only
         btn_frame = ttk.Frame(self.cinema_frame)
         btn_frame.pack(fill='x', pady=10)
         ttk.Button(btn_frame, text="Refresh", command=self.refresh_cinemas).pack(side=tk.LEFT, padx=5)
-        ttk.Button(btn_frame, text="Add Cinema", command=self.add_cinema_dialog).pack(side=tk.LEFT, padx=5)
-        ttk.Button(btn_frame, text="Delete Cinema", command=self.delete_cinema).pack(side=tk.LEFT, padx=5)
-        ttk.Button(btn_frame, text="Edit Cinema", command=self.edit_cinema_dialog).pack(side=tk.LEFT, padx=5)
+        if self.user.role == 'Manager':
+            ttk.Button(btn_frame, text="Add Cinema", command=self.add_cinema_dialog).pack(side=tk.LEFT, padx=5)
+            ttk.Button(btn_frame, text="Edit Cinema", command=self.edit_cinema_dialog).pack(side=tk.LEFT, padx=5)
+            ttk.Button(btn_frame, text="Delete Cinema", command=self.delete_cinema).pack(side=tk.LEFT, padx=5)
+        else:
+            ttk.Label(btn_frame, text="(Cinema management is Manager-only)", foreground='gray').pack(side=tk.LEFT, padx=5)
 
         self.refresh_cinemas()
 
@@ -757,6 +770,7 @@ class AdminPanel:
                 messagebox.showwarning("Warning", "All fields are required")
 
         ttk.Button(container, text="Update", command=update_cinema).pack(fill='x', pady=20)
+
 
 
     def setup_screen_tab(self):
@@ -1123,6 +1137,116 @@ class AdminPanel:
                 messagebox.showwarning("Warning", "Status is required")
 
         ttk.Button(container, text="Update", command=update_booking).pack(fill='x', pady=20)
+
+    def setup_reports_tab(self):
+        ttk.Label(self.reports_frame, text="Admin Reports", font=("Arial", 16, "bold")).pack(fill='x', pady=10)
+        
+        # Report selection
+        control_frame = ttk.Frame(self.reports_frame)
+        control_frame.pack(fill='x', padx=10, pady=10)
+        
+        ttk.Label(control_frame, text="Select Report:").pack(side=tk.LEFT, padx=5)
+        report_var = tk.StringVar(value="bookings_per_listing")
+        report_combo = ttk.Combobox(control_frame, textvariable=report_var, 
+            values=["bookings_per_listing", "monthly_revenue", "top_film", "staff_bookings"],
+            state="readonly", width=30)
+        report_combo.pack(side=tk.LEFT, padx=5)
+        
+        ttk.Button(control_frame, text="Generate Report", 
+                   command=lambda: self.generate_report(report_var.get())).pack(side=tk.LEFT, padx=5)
+        
+        # Report output
+        self.report_text = tk.Text(self.reports_frame, height=30, width=120, wrap='word')
+        self.report_text.pack(expand=True, fill='both', padx=10, pady=10)
+        
+        # Initial report
+        self.generate_report("bookings_per_listing")
+
+    def generate_report(self, report_type):
+        self.report_text.delete('1.0', tk.END)
+        
+        try:
+            if report_type == "bookings_per_listing":
+                self.generate_bookings_per_listing_report()
+            elif report_type == "monthly_revenue":
+                self.generate_monthly_revenue_report()
+            elif report_type == "top_film":
+                self.generate_top_film_report()
+            elif report_type == "staff_bookings":
+                self.generate_staff_bookings_report()
+        except Exception as e:
+            self.report_text.insert(tk.END, f"Error generating report: {str(e)}")
+
+    def generate_bookings_per_listing_report(self):
+        report = "=" * 120 + "\n"
+        report += "BOOKINGS PER LISTING REPORT\n"
+        report += "=" * 120 + "\n\n"
+        
+        results = self.controller.get_bookings_per_listing()
+        report += f"{'Film Name':<30} {'Date':<12} {'Time':<10} {'Total':<8} {'Confirmed':<10} {'Cancelled':<10}\n"
+        report += "-" * 120 + "\n"
+        
+        for row in results:
+            film_name, show_date, show_time, cinema_id, booking_count, confirmed_count, cancelled_count = row
+            report += f"{film_name:<30} {show_date:<12} {show_time:<10} {booking_count:<8} {confirmed_count if confirmed_count else 0:<10} {cancelled_count if cancelled_count else 0:<10}\n"
+        
+        self.report_text.insert(tk.END, report)
+
+    def generate_monthly_revenue_report(self):
+        report = "=" * 100 + "\n"
+        report += "MONTHLY REVENUE REPORT\n"
+        report += "=" * 100 + "\n\n"
+        
+        results = self.controller.get_monthly_revenue_per_cinema()
+        report += f"{'Cinema Name':<30} {'City':<15} {'Bookings':<12} {'Revenue':<15}\n"
+        report += "-" * 100 + "\n"
+        
+        total_revenue = 0.0
+        total_bookings = 0
+        for row in results:
+            cinema_id, cinema_name, city_name, booking_count, revenue = row
+            revenue = revenue if revenue else 0.0
+            total_revenue += revenue
+            total_bookings += booking_count
+            report += f"{cinema_name:<30} {city_name:<15} {booking_count:<12} £{revenue:<14.2f}\n"
+        
+        report += "-" * 100 + "\n"
+        report += f"{'TOTAL':<30} {'':<15} {total_bookings:<12} £{total_revenue:<14.2f}\n"
+        
+        self.report_text.insert(tk.END, report)
+
+    def generate_top_film_report(self):
+        report = "=" * 80 + "\n"
+        report += "TOP REVENUE-GENERATING FILM\n"
+        report += "=" * 80 + "\n\n"
+        
+        result = self.controller.get_top_revenue_film()
+        if result:
+            film_id, film_name, booking_count, total_revenue = result
+            revenue = total_revenue if total_revenue else 0.0
+            report += f"Film Name: {film_name}\n"
+            report += f"Total Bookings: {booking_count}\n"
+            report += f"Total Revenue: £{revenue:.2f}\n"
+        else:
+            report += "No bookings found.\n"
+        
+        self.report_text.insert(tk.END, report)
+
+    def generate_staff_bookings_report(self):
+        report = "=" * 100 + "\n"
+        report += "MONTHLY STAFF BOOKING COUNTS\n"
+        report += "=" * 100 + "\n\n"
+        
+        results = self.controller.get_monthly_staff_booking_counts()
+        report += f"{'Staff Name':<25} {'Role':<15} {'Bookings':<12} {'Revenue Generated':<15}\n"
+        report += "-" * 100 + "\n"
+        
+        for row in results:
+            user_id, username, role, booking_count, revenue = row
+            revenue = revenue if revenue else 0.0
+            report += f"{username:<25} {role:<15} {booking_count:<12} £{revenue:<14.2f}\n"
+        
+        self.report_text.insert(tk.END, report)
 
 
 if __name__ == "__main__":

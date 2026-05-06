@@ -33,6 +33,19 @@ class BookingService:
         conn.close()
         return None if not promo else dict(promo)
 
+    def get_available_seats_for_show(self, show_id):
+        """Get all seats not booked or locked for this show"""
+        booked_rows = self.booking_repo.get_booked_seats_for_show(show_id)
+        booked_seat_ids = {r['seat_id'] for r in booked_rows}
+        
+        locked_rows = self.booking_repo.get_locked_seats_for_show(show_id)
+        locked_seat_ids = {r[0] for r in locked_rows}  # seat_id is first column
+        
+        unavailable_ids = booked_seat_ids | locked_seat_ids
+        
+        all_seats = self.seat_repo.get_all_seats()
+        return [s for s in all_seats if s.get_id() not in unavailable_ids]
+
     def create_booking(self, user, show_id, seat_ids, customer_user_id=None, promo_code=None):
         # De-duplicate in case UI sends the same seat twice.
         seat_ids = list(dict.fromkeys(seat_ids))
@@ -192,3 +205,21 @@ class BookingService:
         conn.close()
 
         return {'booking_ref': booking_ref, 'refund_amount': refund_amount}
+
+    def lock_seats(self, show_id, seat_ids):
+        """Lock seats for booking process (temporary reservation)"""
+        self.booking_repo.cleanup_expired_locks(timeout_minutes=10)
+        locked = []
+        for seat_id in seat_ids:
+            if self.booking_repo.lock_seat(show_id, seat_id):
+                locked.append(seat_id)
+        return locked
+
+    def unlock_seats(self, show_id, seat_ids):
+        """Release seat locks after booking complete or cancelled"""
+        for seat_id in seat_ids:
+            self.booking_repo.unlock_seat(show_id, seat_id)
+
+    def get_seat_lock_status(self, show_id):
+        """Check which seats are currently locked for a show"""
+        return self.booking_repo.get_locked_seats_for_show(show_id)

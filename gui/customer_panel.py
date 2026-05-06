@@ -182,9 +182,15 @@ class CustomerPanel:
         booked_seats = self.controller.get_booked_seats_for_show(show_id)
         booked_seat_ids = {bs['seat_id'] for bs in booked_seats}
         
+        # Get locked seats for this show
+        locked_seats = self.controller.get_locked_seats(show_id)
+        locked_seat_ids = {ls[0] for ls in locked_seats}  # seat_id is first column
+        
+        unavailable_ids = booked_seat_ids | locked_seat_ids
+        
         # Show available seats
         for seat in screen_seats:
-            if seat.id not in booked_seat_ids:
+            if seat.id not in unavailable_ids:
                 self.seats_listbox.insert(tk.END, f"{seat.seat_number} ({seat.seat_type})")
 
     def book_tickets(self):
@@ -323,7 +329,9 @@ class CustomerPanel:
             msg = f"Booking {booking_ref} has been cancelled"
             if refund is not None:
                 msg += f"\nRefund amount: £{refund}"
-            messagebox.showinfo("Success", msg)            self.refresh_booking_shows()            self.refresh_my_bookings()
+            messagebox.showinfo("Success", msg)
+            self.refresh_booking_shows()
+            self.refresh_my_bookings()
         except Exception as e:
             messagebox.showerror("Error", f"Failed to cancel booking: {str(e)}")
 

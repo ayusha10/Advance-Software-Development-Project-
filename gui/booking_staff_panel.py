@@ -124,8 +124,15 @@ class BookingStaffPanel:
         screen_seats = [s for s in seats if int(s.screen_id) == int(screen_id)]
         booked = self.controller.get_booked_seats_for_show(show_id)
         booked_ids = {b['seat_id'] for b in booked}
+        
+        # Get locked seats for this show
+        locked_seats = self.controller.get_locked_seats(show_id)
+        locked_ids = {ls[0] for ls in locked_seats}
+        
+        unavailable_ids = booked_ids | locked_ids
+        
         for s in screen_seats:
-            if s.id not in booked_ids:
+            if s.id not in unavailable_ids:
                 self.seats_listbox.insert(tk.END, f"{s.seat_number} ({s.seat_type})|ID:{s.id}")
 
     def book_for_customer(self):

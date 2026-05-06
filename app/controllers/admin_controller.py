@@ -152,3 +152,154 @@ class AdminController:
 
     def cancel_booking_by_user(self, user, booking_ref, reason=None):
         return self.booking_service.cancel_booking(user, booking_ref, reason)
+
+    # Seat Lock Management
+    def lock_seats(self, show_id, seat_ids):
+        """Lock seats for booking"""
+        return self.booking_service.lock_seats(show_id, seat_ids)
+
+    def unlock_seats(self, show_id, seat_ids):
+        """Release seat locks"""
+        return self.booking_service.unlock_seats(show_id, seat_ids)
+
+    def get_locked_seats(self, show_id):
+        """Get currently locked seats for a show"""
+        return self.booking_service.get_seat_lock_status(show_id)
+
+    # Admin Reports
+    def get_bookings_per_listing(self):
+        """Returns number of bookings for each film/show"""
+        from config.database import get_connection
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT 
+                f.name AS film_name,
+                s.show_date,
+                s.show_time,
+                sc.cinema_id,
+                COUNT(DISTINCT b.id) AS booking_count,
+                SUM(CASE WHEN b.status = 'CONFIRMED' THEN 1 ELSE 0 END) AS confirmed_count,
+                SUM(CASE WHEN b.status = 'CANCELLED' THEN 1 ELSE 0 END) AS cancelled_count
+            FROM shows s
+            JOIN films f ON s.film_id = f.id
+            JOIN screens sc ON s.screen_id = sc.id
+            LEFT JOIN bookings b ON s.id = b.show_id
+            GROUP BY s.id, f.name, s.show_date, s.show_time, sc.cinema_id
+            ORDER BY f.name, s.show_date, s.show_time
+        """)
+        results = cur.fetchall()
+        cur.close()
+        conn.close()
+        return results
+
+    def get_monthly_revenue_per_cinema(self, month=None, year=None):
+        """Returns total monthly revenue per cinema. If month/year not provided, returns current month."""
+        from datetime import date, datetime
+        from config.database import get_connection
+        
+        if not month or not year:
+            today = date.today()
+            month = today.month
+            year = today.year
+        
+        month_str = f"{year}-{month:02d}"
+        
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT 
+                c.id,
+                c.name AS cinema_name,
+                ci.name AS city_name,
+                COUNT(DISTINCT b.id) AS booking_count,
+                SUM(CASE WHEN b.status = 'CONFIRMED' THEN b.total_price ELSE 0 END) AS total_revenue
+            FROM cinemas c
+            JOIN cities ci ON c.city_id = ci.id
+            JOIN screens sc ON c.id = sc.cinema_id
+            JOIN shows s ON sc.id = s.screen_id
+            LEFT JOIN bookings b ON s.id = b.show_id
+            WHERE b.booking_date IS NULL OR b.booking_date LIKE ?
+            GROUP BY c.id, c.name, ci.name
+            ORDER BY total_revenue DESC
+        """, (month_str + '%',))
+        results = cur.fetchall()
+        cur.close()
+        conn.close()
+        return results
+
+    def get_top_revenue_film(self, month=None, year=None):
+        """Returns the film with highest total revenue. If month/year not provided, returns all-time."""
+        from datetime import date
+        from config.database import get_connection
+        
+        conn = get_connection()
+        cur = conn.cursor()
+        
+        if month and year:
+            month_str = f"{year}-{month:02d}"
+            cur.execute("""
+                SELECT 
+                    f.id,
+                    f.name AS film_name,
+                    COUNT(DISTINCT b.id) AS booking_count,
+                    SUM(CASE WHEN b.status = 'CONFIRMED' THEN b.total_price ELSE 0 END) AS total_revenue
+                FROM films f
+                LEFT JOIN shows s ON f.id = s.film_id
+                LEFT JOIN bookings b ON s.id = b.show_id
+                WHERE b.booking_date IS NULL OR b.booking_date LIKE ?
+                GROUP BY f.id, f.name
+                ORDER BY total_revenue DESC
+                LIMIT 1
+            """, (month_str + '%',))
+        else:
+            cur.execute("""
+                SELECT 
+                    f.id,
+                    f.name AS film_name,
+                    COUNT(DISTINCT b.id) AS booking_count,
+                    SUM(CASE WHEN b.status = 'CONFIRMED' THEN b.total_price ELSE 0 END) AS total_revenue
+                FROM films f
+                LEFT JOIN shows s ON f.id = s.film_id
+                LEFT JOIN bookings b ON s.id = b.show_id
+                GROUP BY f.id, f.name
+                ORDER BY total_revenue DESC
+                LIMIT 1
+            """)
+        result = cur.fetchone()
+        cur.close()
+        conn.close()
+        return result
+
+    def get_monthly_staff_booking_counts(self, month=None, year=None):
+        """Returns monthly staff booking counts sorted by count (descending)"""
+        from datetime import date
+        from config.database import get_connection
+        
+        if not month or not year:
+            today = date.today()
+            month = today.month
+            year = today.year
+        
+        month_str = f"{year}-{month:02d}"
+        
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT 
+                u.id,
+                u.username,
+                u.role,
+                COUNT(b.id) AS booking_count,
+                SUM(CASE WHEN b.status = 'CONFIRMED' THEN b.total_price ELSE 0 END) AS revenue_generated
+            FROM users u
+            LEFT JOIN bookings b ON u.id = b.user_id
+            WHERE (u.role = 'Booking-Staff' OR u.role = 'Admin' OR u.role = 'Manager')
+                AND (b.booking_date IS NULL OR b.booking_date LIKE ?)
+            GROUP BY u.id, u.username, u.role
+            ORDER BY booking_count DESC, u.username
+        """, (month_str + '%',))
+        results = cur.fetchall()
+        cur.close()
+        conn.close()
+        return results
