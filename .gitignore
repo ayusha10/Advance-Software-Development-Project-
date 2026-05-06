@@ -75,5 +75,5 @@ tmp/
 *.sqlite3-wal
 *.sqlite3-shm
 *.db
-*.sql
+
 horizon_db.backup.sqlite3
