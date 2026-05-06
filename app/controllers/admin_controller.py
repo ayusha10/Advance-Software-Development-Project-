@@ -6,6 +6,7 @@ from app.repositories.booking_repository import BookingRepository
 from app.repositories.city_repository import CityRepository
 from app.repositories.film_repository import FilmRepository
 from app.repositories.show_repository import ShowRepository
+from app.services.booking_service import BookingService
 
 class AdminController:
     def __init__(self):
@@ -17,6 +18,7 @@ class AdminController:
         self.city_repo = CityRepository()
         self.film_repo = FilmRepository()
         self.show_repo = ShowRepository()
+        self.booking_service = BookingService()
 
     # City Management
     def get_all_cities(self):
@@ -143,3 +145,10 @@ class AdminController:
 
     def cancel_booking(self, booking_reference):
         return self.booking_repo.cancel_booking(booking_reference)
+
+    # High-level booking flows using BookingService (enforces rules)
+    def create_booking(self, user, show_id, seat_ids, customer_user_id=None, promo_code=None):
+        return self.booking_service.create_booking(user, show_id, seat_ids, customer_user_id, promo_code)
+
+    def cancel_booking_by_user(self, user, booking_ref, reason=None):
+        return self.booking_service.cancel_booking(user, booking_ref, reason)

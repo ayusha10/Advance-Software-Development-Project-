@@ -171,3 +171,37 @@ class BookingRepository:
         connection.commit()
         cursor.close()
         connection.close()
+
+    def delete_booked_seats_by_booking(self, booking_id):
+        connection = get_connection()
+        cursor = connection.cursor()
+        query = "DELETE FROM booked_seats WHERE booking_id = ?"
+        cursor.execute(query, (booking_id,))
+        connection.commit()
+        cursor.close()
+        connection.close()
+
+    def get_booking_by_ref(self, booking_ref):
+        connection = get_connection()
+        connection.row_factory = __import__('sqlite3').Row
+        cursor = connection.cursor()
+        query = "SELECT * FROM bookings WHERE booking_ref = ?"
+        cursor.execute(query, (booking_ref,))
+        result = cursor.fetchone()
+        cursor.close()
+        connection.close()
+        if result:
+            r = dict(result)
+            return app.models.booking.Booking(
+                id=r['id'],
+                booking_ref=r['booking_ref'],
+                user_id=r['user_id'],
+                show_id=r['show_id'],
+                promo_id=r['promo_id'],
+                total_price=r['total_price'],
+                service_fee=r['service_fee'],
+                status=r['status'],
+                booking_date=r['booking_date'],
+                created_at=r['created_at']
+            )
+        return None

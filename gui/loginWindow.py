@@ -75,17 +75,25 @@ class LoginWindow:
 
         if user:
             self.root.destroy()
-            # Check Role
-            if user.role == 'Admin':
-                from gui.admin_panal import AdminPanel
-                AdminPanel(user)
-            elif user.role == 'Manager':
-                from gui.manager_panal import ManagerPanel
-                ManagerPanel(user)
-            elif user.role == 'Customer' or user.role == 'Booking-Staff':
-                from gui.customer_panel import CustomerPanel
-                CustomerPanel(user)
-            else:
-                messagebox.showinfo("Login Success", f"Welcome {user.username} ({user.role})")
+            try:
+                # Check Role
+                if user.role == 'Admin':
+                    from gui.admin_panal import AdminPanel
+                    AdminPanel(user)
+                elif user.role == 'Manager':
+                    from gui.manager_panal import ManagerPanel
+                    ManagerPanel(user)
+                elif user.role == 'Customer':
+                    from gui.customer_panel import CustomerPanel
+                    CustomerPanel(user)
+                elif user.role == 'Booking-Staff':
+                    from gui.booking_staff_panel import BookingStaffPanel
+                    BookingStaffPanel(user)
+                else:
+                    messagebox.showinfo("Login Success", f"Welcome {user.username} ({user.role})")
+            except Exception as e:
+                # Re-open login if role panel fails to start.
+                messagebox.showerror("Panel Error", f"Could not open {user.role} panel: {str(e)}")
+                LoginWindow()
         else:
             messagebox.showerror("Login Failed", "Invalid username or password")

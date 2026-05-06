@@ -8,10 +8,13 @@ CREATE TABLE users (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Seed users: changed admin password and added sample customer and staff accounts
 INSERT INTO users (username, password, role) VALUES
-('admin26', 'admin@2026', 'Admin'),
+('admin26', 'Admin@2026!', 'Admin'),
 ('manager26', 'manager@2026', 'Manager'),
-('staff26', 'staff@26', 'Booking-Staff');
+('staff26', 'staff@26', 'Booking-Staff'),
+('staff1', 'staff@2026', 'Booking-Staff'),
+('customer1', 'cust@2026', 'Customer');
 
 
 CREATE TABLE cities (

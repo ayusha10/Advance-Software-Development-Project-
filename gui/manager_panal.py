@@ -801,10 +801,17 @@ class ManagerPanel:
         if not selected:
             messagebox.showwarning("Warning", "Select a booking first")
             return
-        booking_id = self.booking_tree.item(selected[0])['values'][0]
-        if messagebox.askyesno("Confirm", f"Cancel/Delete booking ID {booking_id}?"):
-            self.controller.delete_booking(booking_id)
-            self.refresh_bookings()
+        booking_ref = self.booking_tree.item(selected[0])['values'][1]
+        if messagebox.askyesno("Confirm", f"Cancel booking {booking_ref}?"):
+            try:
+                result = self.controller.cancel_booking_by_user(self.user, booking_ref)
+                refund = result.get('refund_amount') if isinstance(result, dict) else None
+                msg = f"Booking {booking_ref} has been cancelled"
+                if refund is not None:
+                    msg += f"\nRefund amount: £{refund}"
+                messagebox.showinfo("Success", msg)
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to cancel booking: {str(e)}")            self.refresh_shows()            self.refresh_bookings()
 
     def edit_booking_dialog(self):
         selected = self.booking_tree.selection()

@@ -57,3 +57,22 @@ class SeatRepository:
         connection.commit()
         cursor.close()
         connection.close()
+
+    def get_seat_by_id(self, seat_id):
+        connection = get_connection()
+        connection.row_factory = __import__('sqlite3').Row
+        cursor = connection.cursor()
+        query = "SELECT s.* FROM seats s WHERE s.id = ?"
+        cursor.execute(query, (seat_id,))
+        result = cursor.fetchone()
+        cursor.close()
+        connection.close()
+        if result:
+            r = dict(result)
+            return app.models.seat.Seat(
+                id=r['id'],
+                screen_id=r['screen_id'],
+                seat_number=r['seat_number'],
+                seat_type=r['seat_type']
+            )
+        return None

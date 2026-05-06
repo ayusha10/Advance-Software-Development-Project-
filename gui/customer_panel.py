@@ -250,27 +250,16 @@ class CustomerPanel:
             return
         
         try:
-            # Create booking
-            import uuid
-            from datetime import datetime
-            
-            booking_ref = str(uuid.uuid4())[:8].upper()
-            now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            
-            from app.models.booking import Booking
-            new_booking = Booking(None, booking_ref, self.user.user_id, show_id, None, total_price, 0.0, "CONFIRMED", now, now)
-            booking_id = self.controller.add_booking(new_booking)
-            
-            # Add booked seats
-            for seat in selected_seat_objects:
-                self.controller.add_booked_seat(booking_id, show_id, seat.id)
-            
-            messagebox.showinfo("Success", f"Booking confirmed!\nReference: {booking_ref}\nSeats: {seat_numbers}")
-            
+            # Use controller's booking flow (enforces business rules and pricing)
+            seat_ids = [s.id for s in selected_seat_objects]
+            receipt = self.controller.create_booking(self.user, show_id, seat_ids)
+            booking_ref = receipt.get('booking_ref')
+            messagebox.showinfo("Success", f"Booking confirmed!\nReference: {booking_ref}\nSeats: {seat_numbers}\nTotal: £{receipt.get('total_price')}")
+
             # Refresh views
             self.refresh_booking_shows()
             self.refresh_my_bookings()
-            
+
         except Exception as e:
             import traceback
             print(traceback.format_exc())
@@ -329,9 +318,12 @@ class CustomerPanel:
             return
         
         try:
-            self.controller.cancel_booking(booking_ref)
-            messagebox.showinfo("Success", f"Booking {booking_ref} has been cancelled")
-            self.refresh_my_bookings()
+            result = self.controller.cancel_booking_by_user(self.user, booking_ref)
+            refund = result.get('refund_amount') if isinstance(result, dict) else None
+            msg = f"Booking {booking_ref} has been cancelled"
+            if refund is not None:
+                msg += f"\nRefund amount: £{refund}"
+            messagebox.showinfo("Success", msg)            self.refresh_booking_shows()            self.refresh_my_bookings()
         except Exception as e:
             messagebox.showerror("Error", f"Failed to cancel booking: {str(e)}")
 

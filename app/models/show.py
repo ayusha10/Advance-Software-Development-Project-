@@ -33,3 +33,41 @@ class Show:
     
     def get_display_info(self):
         return f"{self.film_name} | {self.cinema_name} - {self.screen_number} | {self.show_time}"
+
+    # Pricing helpers
+    def get_lower_price(self):
+        """Lower hall base price (stored in show as base_price)."""
+        return float(self.base_price)
+
+    def get_upper_price(self):
+        """Upper gallery price is 20% higher than lower hall."""
+        return round(self.get_lower_price() * 1.2, 2)
+
+    def get_vip_price(self):
+        """VIP price is 20% higher than upper gallery."""
+        return round(self.get_upper_price() * 1.2, 2)
+
+    def price_for(self, seat_type, vip=False):
+        """Return price for a given seat type. seat_type: 'lower' or 'upper'. vip: boolean for VIP seat."""
+        st = seat_type.lower()
+        if st == 'lower':
+            price = self.get_lower_price()
+        else:
+            price = self.get_upper_price()
+        if vip:
+            price = round(price * 1.2, 2)
+        return price
+
+    # Seat distribution helper
+    def compute_seat_distribution(self, total_seats):
+        """Compute approximate counts for lower, upper and VIP seats.
+
+        - Lower hall: ~30% of total seats (rounded)
+        - Upper gallery: remaining seats
+        - VIP seats: up to 10 seats in upper gallery
+        Returns tuple: (lower_count, upper_count, vip_count)
+        """
+        lower = int(round(total_seats * 0.3))
+        upper = total_seats - lower
+        vip = min(10, upper)
+        return lower, upper, vip
