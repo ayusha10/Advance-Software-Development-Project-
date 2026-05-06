@@ -1,0 +1,26 @@
+version: 2.1
+
+jobs:
+  test:
+    docker:
+      - image: cimg/python:3.12
+    working_directory: ~/repo
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies (if any)
+          command: |
+            if [ -f requirements.txt ]; then
+              python -m pip install --upgrade pip
+              python -m pip install -r requirements.txt
+            fi
+      - run:
+          name: Run test suite
+          command: |
+            python -V
+            python run_tests.py
+
+workflows:
+  test_workflow:
+    jobs:
+      - test
