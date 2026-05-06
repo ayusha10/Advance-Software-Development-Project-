@@ -25,7 +25,12 @@ class CityRepository:
         connection = get_connection()
         cursor = connection.cursor()
         query = "INSERT INTO cities (name) VALUES (?)"
-        cursor.execute(query, (city.name,))
+        # Accept either a City instance or a plain string for convenience
+        if isinstance(city, str):
+            name = city
+        else:
+            name = city.name
+        cursor.execute(query, (name,))
         connection.commit()
         city_id = cursor.lastrowid
         cursor.close()
