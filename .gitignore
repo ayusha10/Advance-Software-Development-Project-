@@ -72,6 +72,8 @@ Thumbs.db
 # Project Specific
 tmp/
 *.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
 *.db
 *.sql
 horizon_db.backup.sqlite3
