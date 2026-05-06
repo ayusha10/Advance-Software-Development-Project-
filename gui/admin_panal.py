@@ -927,8 +927,6 @@ class AdminPanel:
 
         ttk.Label(container, text="Screen").pack(fill='x', pady=5)
         screens = self.controller.get_all_screens()
-        # We'll show "Cinema Name - Screen Number" for clarity
-        # Requirement: get_all_cinemas to lookup names
         cinemas = self.controller.get_all_cinemas()
         c_map = {c.id: c.name for c in cinemas}
         
@@ -964,6 +962,10 @@ class AdminPanel:
                 messagebox.showwarning("Warning", "All fields are required")
 
         ttk.Button(container, text="Save", command=save_seat).pack(fill='x', pady=20)
+        
+    def add_seat_button(self):
+        """Alias for add_seat_dialog to ensure proper method availability"""
+        self.add_seat_dialog()
 
     def delete_seat(self):
         selected = self.seat_tree.selection()

@@ -21,11 +21,11 @@ class CityRepository:
         connection.close()
         return cities
 
-    def add_city(self, city_name):
+    def add_city(self, city):
         connection = get_connection()
         cursor = connection.cursor()
         query = "INSERT INTO cities (name) VALUES (?)"
-        cursor.execute(query, (city_name,))
+        cursor.execute(query, (city.name,))
         connection.commit()
         city_id = cursor.lastrowid
         cursor.close()
