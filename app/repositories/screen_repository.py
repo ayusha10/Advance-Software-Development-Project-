@@ -46,12 +46,26 @@ class ScreenRepository:
         screen_id = cursor.lastrowid
         
         # Automatically generate seats for this screen
-        # User requested: like a1, a2...
-        for i in range(1, screen.total_seats + 1):
-            seat_num = f"a{i}"
-            # Default to 'Lower' type as per initial data pattern
-            cursor.execute("INSERT INTO seats (screen_id, seat_number, seat_type) VALUES (?, ?, ?)", 
-                           (screen_id, seat_num, "Lower"))
+        lower_count = int(round(screen.total_seats * 0.3))
+        upper_total = max(0, screen.total_seats - lower_count)
+        vip_count = min(10, upper_total)
+        upper_count = max(0, upper_total - vip_count)
+
+        seat_index = 1
+        for _ in range(lower_count):
+            cursor.execute("INSERT INTO seats (screen_id, seat_number, seat_type) VALUES (?, ?, ?)",
+                           (screen_id, f"A{seat_index}", "Lower"))
+            seat_index += 1
+
+        for _ in range(upper_count):
+            cursor.execute("INSERT INTO seats (screen_id, seat_number, seat_type) VALUES (?, ?, ?)",
+                           (screen_id, f"B{seat_index}", "Upper"))
+            seat_index += 1
+
+        for _ in range(vip_count):
+            cursor.execute("INSERT INTO seats (screen_id, seat_number, seat_type) VALUES (?, ?, ?)",
+                           (screen_id, f"VIP{seat_index}", "VIP"))
+            seat_index += 1
         
         connection.commit()
         cursor.close()

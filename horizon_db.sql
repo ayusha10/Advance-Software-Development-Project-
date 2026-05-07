@@ -8,13 +8,17 @@ CREATE TABLE users (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- Seed users: changed admin password and added sample customer and staff accounts
-INSERT INTO users (username, password, role) VALUES
-('admin26', 'admin1234', 'Admin'),
-('manager26', 'manager@2026', 'Manager'),
-('staff26', 'staff@26', 'Booking-Staff'),
-('staff1', 'staff@2026', 'Booking-Staff'),
-('customer1', 'cust@2026', 'Customer');
+INSERT INTO users (username, password, role, assigned_city_id) VALUES
+('admin26', 'admin1234', 'Admin', NULL),
+('manager26', 'manager@2026', 'Manager', 3),
+('customer26', 'customer26', 'Customer', NULL),
+
+('Ayusha', 'ayusha1234', 'Customer', NULL),
+
+('staff1', 'staff@2026', 'Booking-Staff', 1),
+('customer1', 'cust@2026', 'Customer', NULL),
+('staff26', 'staff@26', 'Booking-Staff', 1),
+('pras', 'pras', 'Customer', NULL);
 
 
 CREATE TABLE cities (
@@ -42,7 +46,11 @@ INSERT INTO cinemas (name, city_id) VALUES
 ('HORIZON CINEMA BIRMINGHAM', 1), 
 ('HORIZON CINEMA BRISTOL', 2),
 ('HORIZON CINEMA CARDIFF', 3),
-('HORIZON CINEMA LONDON', 4);
+('HORIZON CINEMA LONDON', 4),
+('Horizon Cinema Birmingham Star City', 1),
+('Horizon Cinema Bristol Cribbs Causeway', 2),
+('Horizon Cinema Cardiff Gate', 3),
+('Horizon Cinema London Canary Wharf', 4);
 
 
 CREATE TABLE screens (
@@ -55,10 +63,18 @@ CREATE TABLE screens (
 
 
 INSERT INTO screens (cinema_id, screen_number, total_seats) VALUES 
-(1, 1, 60),
-(2, 1, 50),
-(3, 2, 20),
-(4, 3, 70);
+(1, 1, 70),
+(2, 1, 70),
+(3, 2, 70),
+(4, 3, 70),
+(1, 2, 70),
+(2, 2, 70),
+(3, 2, 70),
+(4, 2, 70),
+(5, 2, 70),
+(6, 2, 70),
+(7, 2, 70),
+(8, 2, 70);
 
 
 CREATE TABLE films (
@@ -67,16 +83,17 @@ CREATE TABLE films (
     genre TEXT,
     age_rating INTEGER,
     description TEXT,
+    actors TEXT,
     time_duration INTEGER NOT NULL
 );
 
 
-INSERT INTO films (name, genre, age_rating, description, time_duration) VALUES
-('Maverick', 'Action', 18, 'Drama', 130),
-('Spider-Man', 'Action Drama', 16, 'No Way Home', 148),
-('Avatar 2', 'Sci-Fi', 12, 'Epic science fiction film', 180),
-('The Batman', 'Action', 15, 'Superhero action film', 165),
-('Frozen 3', 'Animation', 0, 'Family animation movie', 120);
+INSERT INTO films (name, genre, age_rating, description, actors, time_duration) VALUES
+('Maverick', 'Action', 18, 'Drama', 'Tom Cruise, Miles Teller, Jennifer Connelly', 130),
+('Spider-Man', 'Action Drama', 16, 'No Way Home', 'Tom Holland, Zendaya, Benedict Cumberbatch', 148),
+('Avatar 2', 'Sci-Fi', 12, 'Epic science fiction film', 'Sam Worthington, Zoe Saldana, Sigourney Weaver', 180),
+('The Batman', 'Action', 15, 'Superhero action film', 'Robert Pattinson, Zoë Kravitz, Paul Dano', 165),
+('Frozen 3', 'Animation', 0, 'Family animation movie', 'Idina Menzel, Kristen Bell, Josh Gad', 120);
 
 
 CREATE TABLE shows (
@@ -87,16 +104,26 @@ CREATE TABLE shows (
     show_time TEXT NOT NULL,
     base_price REAL NOT NULL,
     FOREIGN KEY (film_id) REFERENCES films(id) ON DELETE CASCADE,
-    FOREIGN KEY (screen_id) REFERENCES screen(id) ON DELETE CASCADE,
+    FOREIGN KEY (screen_id) REFERENCES screens(id) ON DELETE CASCADE,
     UNIQUE(screen_id, show_date, show_time)
 );
 
 
 INSERT INTO shows (film_id, screen_id, show_date, show_time, base_price) VALUES 
-(1, 1, '2026-03-01', '10:00:00', 5.00), 
-(2, 2, '2026-03-02', '14:00:00', 6.00),
-(3, 3, '2026-03-03', '18:00:00', 7.00),
-(4, 3, '2026-03-04', '19:00:00', 7.50);
+(1, 1, '2026-05-13', '10:00:00', 5.00),
+(2, 2, '2026-05-14', '14:00:00', 6.00),
+(3, 3, '2026-05-15', '18:00:00', 7.00),
+(4, 3, '2026-05-16', '19:00:00', 7.50),
+(1, 1, '2026-05-06', '18:00:00', 10.00),
+(4, 4, '2026-05-13', '10:00:00', 5.00),
+(5, 6, '2026-05-13', '14:00:00', 6.00),
+(1, 7, '2026-05-13', '18:00:00', 7.00),
+(2, 8, '2026-05-13', '10:00:00', 5.00),
+(3, 9, '2026-05-13', '14:00:00', 6.00),
+(4, 10, '2026-05-13', '18:00:00', 7.00),
+(5, 11, '2026-05-13', '10:00:00', 5.00),
+(1, 12, '2026-05-13', '14:00:00', 6.00),
+(2, 13, '2026-05-13', '18:00:00', 7.00);
 
 
 CREATE TABLE seats (
@@ -104,16 +131,31 @@ CREATE TABLE seats (
     screen_id INTEGER NOT NULL,
     seat_number TEXT NOT NULL,
     seat_type TEXT NOT NULL CHECK(seat_type IN ('Lower', 'Upper', 'VIP')),
-    FOREIGN KEY (screen_id) REFERENCES screen(id) ON DELETE CASCADE,
+    FOREIGN KEY (screen_id) REFERENCES screens(id) ON DELETE CASCADE,
     UNIQUE(screen_id, seat_number)
 );
 
 
-INSERT INTO seats (screen_id, seat_number, seat_type) VALUES
-(1, 'A1', 'Lower'),
-(1, 'A2', 'Lower'),
-(1, 'A3', 'Upper'),
-(1, 'A4', 'VIP');
+INSERT OR IGNORE INTO seats (screen_id, seat_number, seat_type)
+WITH RECURSIVE nums(n) AS (
+    SELECT 1
+    UNION ALL
+    SELECT n + 1 FROM nums WHERE n < 70
+)
+SELECT
+    s.id,
+    CASE
+        WHEN nums.n <= 21 THEN printf('L%02d', nums.n)
+        WHEN nums.n <= 60 THEN printf('U%02d', nums.n - 21)
+        ELSE printf('VIP%02d', nums.n - 60)
+    END,
+    CASE
+        WHEN nums.n <= 21 THEN 'Lower'
+        WHEN nums.n <= 60 THEN 'Upper'
+        ELSE 'VIP'
+    END
+FROM screens s
+CROSS JOIN nums;
 
 
 CREATE TABLE promotions (

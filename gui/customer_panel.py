@@ -29,6 +29,7 @@ class CustomerPanel:
         user_info = ttk.Frame(header_frame)
         user_info.pack(side=tk.RIGHT)
         ttk.Label(user_info, text=f"Welcome, {self.user.username}", font=Theme.FONT_BOLD).pack(side=tk.LEFT, padx=10)
+        ttk.Button(user_info, text="Cancellation GUI", command=self.open_cancellation_gui, style="Accent.TButton").pack(side=tk.LEFT, padx=5)
         ttk.Button(user_info, text="Logout", command=self.logout, style="Danger.TButton").pack(side=tk.LEFT)
 
         self.notebook = ttk.Notebook(self.root)
@@ -53,11 +54,14 @@ class CustomerPanel:
     def setup_movies_tab(self):
         ttk.Label(self.movies_frame, text="Available Movies", font=("Arial", 16, "bold")).pack(fill='x', pady=10)
         
-        cols = ('ID', 'Name', 'Genre', 'Rating', 'Duration')
+        cols = ('ID', 'Name', 'Genre', 'Rating', 'Duration', 'Description', 'Actors', 'Show Times')
         self.movies_tree = ttk.Treeview(self.movies_frame, columns=cols, show='headings', height=15)
         for col in cols:
             self.movies_tree.heading(col, text=col, anchor='center')
-            self.movies_tree.column(col, width=150, anchor='center')
+            if col in ('Description', 'Actors', 'Show Times'):
+                self.movies_tree.column(col, width=260, anchor='w')
+            else:
+                self.movies_tree.column(col, width=120, anchor='center')
         self.movies_tree.pack(expand=True, fill='both', padx=10, pady=5)
         
         ttk.Button(self.movies_frame, text="Refresh Movies", command=self.refresh_movies).pack(fill='x', pady=10)
@@ -68,8 +72,22 @@ class CustomerPanel:
             self.movies_tree.delete(item)
         
         films = self.controller.get_all_films()
+        show_times = self.controller.get_film_show_times()
         for film in films:
-            self.movies_tree.insert('', tk.END, values=(film.id, film.name, film.genre, film.age_rating, f"{film.time_duration} min"))
+            self.movies_tree.insert('', tk.END, values=(
+                film.id,
+                film.name,
+                film.genre,
+                film.age_rating,
+                f"{film.time_duration} min",
+                film.description if film.description else '',
+                film.actors if getattr(film, 'actors', None) else '',
+                show_times.get(film.name, '')
+            ))
+
+    def open_cancellation_gui(self):
+        from gui.cancellation_gui import CancellationWindow
+        CancellationWindow(self.user)
 
     def setup_shows_tab(self):
         ttk.Label(self.shows_frame, text="Available Shows", font=("Arial", 16, "bold")).pack(fill='x', pady=10)
@@ -98,7 +116,10 @@ class CustomerPanel:
             ))
 
     def setup_booking_tab(self):
-        ttk.Label(self.booking_frame, text="Book Movie Tickets", font=("Arial", 16, "bold")).pack(fill='x', pady=10)
+        header_frame = ttk.Frame(self.booking_frame)
+        header_frame.pack(fill='x', padx=10, pady=10)
+        ttk.Label(header_frame, text="Book Movie Tickets", font=("Arial", 16, "bold")).pack(side=tk.LEFT)
+        ttk.Button(header_frame, text="📋 Complete Booking Form (All-in-One)", command=self.open_unified_booking_dialog, style="Accent.TButton").pack(side=tk.RIGHT)
         
         # Show selection
         show_frame = tk.LabelFrame(self.booking_frame, text="Select Show")
@@ -115,24 +136,30 @@ class CustomerPanel:
         # Ticket and seat selection
         ticket_frame = tk.LabelFrame(self.booking_frame, text="Select Tickets & Seats")
         ticket_frame.pack(fill='both', expand=True, padx=10, pady=5)
+
+        ttk.Label(ticket_frame, text="Seat Type:").grid(row=0, column=0, padx=5, pady=5, sticky='w')
+        self.seat_type_filter = tk.StringVar(value="All")
+        seat_type_combo = ttk.Combobox(ticket_frame, textvariable=self.seat_type_filter, state='readonly', values=['All', 'Lower', 'Upper', 'VIP'])
+        seat_type_combo.grid(row=0, column=1, padx=5, pady=5, sticky='w')
+        seat_type_combo.bind('<<ComboboxSelected>>', self.refresh_selected_show_seats)
         
         # Number of tickets
-        ttk.Label(ticket_frame, text="Number of Tickets:").grid(row=0, column=0, padx=5, pady=5, sticky='w')
+        ttk.Label(ticket_frame, text="Number of Tickets:").grid(row=1, column=0, padx=5, pady=5, sticky='w')
         self.ticket_count = tk.IntVar(value=1)
-        tk.Spinbox(ticket_frame, from_=1, to=10, textvariable=self.ticket_count).grid(row=0, column=1, padx=5, pady=5, sticky='w')
+        tk.Spinbox(ticket_frame, from_=1, to=10, textvariable=self.ticket_count).grid(row=1, column=1, padx=5, pady=5, sticky='w')
         
         # Available seats
-        ttk.Label(ticket_frame, text="Available Seats:").grid(row=1, column=0, padx=5, pady=5, sticky='nw')
+        ttk.Label(ticket_frame, text="Available Seats:").grid(row=2, column=0, padx=5, pady=5, sticky='nw')
         self.seats_listbox = tk.Listbox(ticket_frame, height=8, selectmode=tk.MULTIPLE)
-        self.seats_listbox.grid(row=1, column=1, padx=5, pady=5, sticky='nsew')
+        self.seats_listbox.grid(row=2, column=1, padx=5, pady=5, sticky='nsew')
         
         # Buttons
         btn_frame = ttk.Frame(ticket_frame)
-        btn_frame.grid(row=2, column=0, columnspan=2, pady=10)
+        btn_frame.grid(row=3, column=0, columnspan=2, pady=10)
         ttk.Button(btn_frame, text="Refresh Shows", command=self.refresh_booking_shows).pack(side=tk.LEFT, padx=5)
         ttk.Button(btn_frame, text="Book Selected Seats", command=self.book_tickets, style="Success.TButton").pack(side=tk.LEFT, padx=5)
         
-        ticket_frame.grid_rowconfigure(1, weight=1)
+        ticket_frame.grid_rowconfigure(2, weight=1)
         ticket_frame.grid_columnconfigure(1, weight=1)
         
         self.refresh_booking_shows()
@@ -171,6 +198,16 @@ class CustomerPanel:
         if screen_id:
             self.load_available_seats(show_id, screen_id)
 
+    def refresh_selected_show_seats(self, event=None):
+        selected = self.booking_shows_tree.selection()
+        if not selected:
+            return
+        item_values = self.booking_shows_tree.item(selected[0])['values']
+        show_id = int(item_values[0])
+        show = self.controller.get_show_by_id(show_id)
+        if show:
+            self.load_available_seats(show_id, show.screen_id)
+
     def load_available_seats(self, show_id, screen_id):
         self.seats_listbox.delete(0, tk.END)
         
@@ -191,7 +228,9 @@ class CustomerPanel:
         # Show available seats
         for seat in screen_seats:
             if seat.id not in unavailable_ids:
-                self.seats_listbox.insert(tk.END, f"{seat.seat_number} ({seat.seat_type})")
+                seat_type_filter = self.seat_type_filter.get()
+                if seat_type_filter == 'All' or seat.seat_type == seat_type_filter:
+                    self.seats_listbox.insert(tk.END, f"{seat.seat_number} ({seat.seat_type})")
 
     def book_tickets(self):
         selected_show = self.booking_shows_tree.selection()
@@ -280,13 +319,28 @@ class CustomerPanel:
             self.my_bookings_tree.heading(col, text=col, anchor='center')
             self.my_bookings_tree.column(col, width=100, anchor='center')
         self.my_bookings_tree.pack(expand=True, fill='both', padx=10, pady=5)
+        self.my_bookings_tree.bind('<<TreeviewSelect>>', self.on_booking_selected)
         
         btn_frame = ttk.Frame(self.my_bookings_frame)
         btn_frame.pack(fill='x', pady=10)
         ttk.Button(btn_frame, text="Refresh Bookings", command=self.refresh_my_bookings).pack(side=tk.LEFT, padx=5)
-        ttk.Button(btn_frame, text="Cancel Booking", command=self.cancel_booking, style="Danger.TButton").pack(side=tk.LEFT, padx=5)
+        self.cancel_booking_btn = ttk.Button(btn_frame, text="Cancel Booking", command=self.cancel_booking, style="Danger.TButton")
+        self.cancel_booking_btn.pack(side=tk.LEFT, padx=5)
         
         self.refresh_my_bookings()
+    
+    def on_booking_selected(self, event):
+        """Enable/disable cancel button based on booking status"""
+        selected = self.my_bookings_tree.selection()
+        if not selected:
+            self.cancel_booking_btn.config(state='disabled')
+            return
+        
+        status = self.my_bookings_tree.item(selected[0])['values'][6]
+        if status == "CANCELLED":
+            self.cancel_booking_btn.config(state='disabled')
+        else:
+            self.cancel_booking_btn.config(state='normal')
 
     def refresh_my_bookings(self):
         for item in self.my_bookings_tree.get_children():
@@ -335,7 +389,334 @@ class CustomerPanel:
         except Exception as e:
             messagebox.showerror("Error", f"Failed to cancel booking: {str(e)}")
 
+    def open_unified_booking_dialog(self):
+        """Single comprehensive booking form with scrollable sections"""
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Complete Booking Form")
+        dialog.geometry("1200x900")
+        Theme.apply(dialog)
+        
+        # STATE variables
+        selected_show = [None]
+        
+        # TITLE
+        ttk.Label(dialog, text="HORIZON CINEMA - COMPLETE BOOKING FORM", font=(Theme.FONT_FAMILY, 16, "bold")).pack(pady=10)
+        
+        # Create scrollable main frame
+        main_container = ttk.Frame(dialog)
+        main_container.pack(fill='both', expand=True, padx=10, pady=5)
+        
+        canvas = tk.Canvas(main_container, bg='white', highlightthickness=0)
+        scrollbar = ttk.Scrollbar(main_container, orient='vertical', command=canvas.yview)
+        scrollable_frame = ttk.Frame(canvas)
+        
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+        
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        
+        # SECTION 1: SELECT SHOW
+        ttk.Separator(scrollable_frame, orient='horizontal').pack(fill='x', pady=10)
+        ttk.Label(scrollable_frame, text="STEP 1: SELECT MOVIE & SHOW", font=(Theme.FONT_FAMILY, 13, "bold")).pack(anchor='w', padx=15, pady=(10, 5))
+        
+        show_frame = ttk.LabelFrame(scrollable_frame, text="Available Shows", padding=15)
+        show_frame.pack(fill='both', expand=False, padx=15, pady=5)
+        
+        cols = ('ID', 'Film', 'Cinema', 'Screen', 'Date', 'Time', 'Lower', 'Upper', 'VIP', 'Price')
+        shows_tree = ttk.Treeview(show_frame, columns=cols, show='headings', height=5)
+        for col in cols:
+            shows_tree.heading(col, text=col, anchor='center')
+            shows_tree.column(col, width=105, anchor='center')
+        shows_tree.pack(fill='both', expand=True)
+        
+        def load_shows():
+            shows_tree.delete(*shows_tree.get_children())
+            shows = self.controller.get_all_shows()
+            for show in shows:
+                shows_tree.insert('', tk.END, values=(
+                    show.id, show.film_name, show.cinema_name, show.screen_number,
+                    show.show_date, show.show_time,
+                    show.lower_available, show.upper_available, show.vip_available,
+                    f"£{show.price_for('upper', False):.2f}"
+                ))
+        
+        def on_show_select(event):
+            selected = shows_tree.selection()
+            if selected:
+                values = shows_tree.item(selected[0])['values']
+                selected_show[0] = {
+                    'id': int(values[0]),
+                    'film': values[1],
+                    'cinema': values[2],
+                    'screen': values[3],
+                    'date': values[4],
+                    'time': values[5],
+                    'price': float(str(values[9]).replace('£', ''))
+                }
+                refresh_all_displays()
+        
+        shows_tree.bind('<<TreeviewSelect>>', on_show_select)
+        load_shows()
+        
+        # SECTION 2: SHOW DETAILS
+        ttk.Separator(scrollable_frame, orient='horizontal').pack(fill='x', pady=10)
+        ttk.Label(scrollable_frame, text="STEP 2: SHOW DETAILS", font=(Theme.FONT_FAMILY, 13, "bold")).pack(anchor='w', padx=15, pady=(10, 5))
+        
+        details_frame = ttk.LabelFrame(scrollable_frame, text="Selected Show Information", padding=15)
+        details_frame.pack(fill='x', padx=15, pady=5)
+        
+        details_text = tk.Text(details_frame, height=5, wrap='word', bg='#f0f0f0')
+        details_text.pack(fill='x')
+        details_text.config(state='disabled')
+        
+        def update_details():
+            details_text.config(state='normal')
+            details_text.delete('1.0', tk.END)
+            if selected_show[0]:
+                info = f"""Film: {selected_show[0]['film']}
+Cinema: {selected_show[0]['cinema']}
+Screen: {selected_show[0]['screen']}
+Date: {selected_show[0]['date']} at {selected_show[0]['time']}
+Base Price per Ticket: £{selected_show[0]['price']:.2f}"""
+                details_text.insert(tk.END, info)
+            else:
+                details_text.insert(tk.END, "No show selected. Please select a show above.")
+            details_text.config(state='disabled')
+        
+        # SECTION 3: SEAT SELECTION
+        ttk.Separator(scrollable_frame, orient='horizontal').pack(fill='x', pady=10)
+        ttk.Label(scrollable_frame, text="STEP 3: SELECT SEATS", font=(Theme.FONT_FAMILY, 13, "bold")).pack(anchor='w', padx=15, pady=(10, 5))
+        
+        seat_control_frame = ttk.Frame(scrollable_frame)
+        seat_control_frame.pack(fill='x', padx=15, pady=5)
+        
+        ttk.Label(seat_control_frame, text="Seat Type Filter:").pack(side=tk.LEFT, padx=5)
+        seat_type_var = tk.StringVar(value='All')
+        seat_type_combo = ttk.Combobox(seat_control_frame, textvariable=seat_type_var, state='readonly', 
+                                       values=['All', 'Lower', 'Upper', 'VIP'], width=12)
+        seat_type_combo.pack(side=tk.LEFT, padx=5)
+        
+        seats_frame = ttk.LabelFrame(scrollable_frame, text="Available Seats (Select Multiple)", padding=15)
+        seats_frame.pack(fill='both', expand=False, padx=15, pady=5)
+        
+        # Seats listbox with scrollbar
+        seats_inner_frame = ttk.Frame(seats_frame)
+        seats_inner_frame.pack(fill='both', expand=True)
+        
+        seats_listbox = tk.Listbox(seats_inner_frame, selectmode=tk.MULTIPLE, height=6, width=80)
+        seats_listbox.pack(side=tk.LEFT, fill='both', expand=True)
+        
+        seats_scroll = ttk.Scrollbar(seats_inner_frame, orient='vertical', command=seats_listbox.yview)
+        seats_scroll.pack(side=tk.RIGHT, fill='y')
+        seats_listbox.config(yscrollcommand=seats_scroll.set)
+        
+        def refresh_available_seats():
+            seats_listbox.delete(0, tk.END)
+            if not selected_show[0]:
+                return
+            show_id = selected_show[0]['id']
+            booking_service = self.controller.booking_service
+            available = booking_service.get_available_seats_for_show(show_id)
+            
+            seat_type_filter = seat_type_var.get()
+            for seat in sorted(available, key=lambda s: (s.seat_number)):
+                seat_type = seat.get_seat_type()
+                if seat_type_filter == 'All' or seat_type.lower() == seat_type_filter.lower():
+                    price_mult = 1.0 if seat_type.lower() == 'lower' else 1.2 if seat_type.lower() == 'upper' else 1.44
+                    seat_price = selected_show[0]['price'] * price_mult
+                    seats_listbox.insert(tk.END, f"{seat.seat_number:>4} ({seat_type:<5})  £{seat_price:>6.2f}")
+        
+        seat_type_combo.bind('<<ComboboxSelected>>', lambda e: refresh_available_seats())
+        
+        # SECTION 4: PRICE CALCULATION
+        ttk.Separator(scrollable_frame, orient='horizontal').pack(fill='x', pady=10)
+        ttk.Label(scrollable_frame, text="STEP 4: PRICE SUMMARY", font=(Theme.FONT_FAMILY, 13, "bold")).pack(anchor='w', padx=15, pady=(10, 5))
+        
+        price_frame = ttk.LabelFrame(scrollable_frame, text="Booking Cost Calculation", padding=15)
+        price_frame.pack(fill='x', padx=15, pady=5)
+        
+        price_display = tk.StringVar(value="Select show and seats to calculate total price")
+        price_label = ttk.Label(price_frame, textvariable=price_display, font=(Theme.FONT_FAMILY, 12, "bold"), foreground='#008000')
+        price_label.pack(pady=10)
+        
+        def update_price_display():
+            selected_indices = seats_listbox.curselection()
+            if not selected_show[0] or not selected_indices:
+                price_display.set("Select show and seats to calculate total price")
+                return
+            
+            show_obj = next((s for s in self.controller.get_all_shows() if int(s.id) == selected_show[0]['id']), None)
+            if not show_obj:
+                return
+            
+            total = 0.0
+            for idx in selected_indices:
+                seat_text = seats_listbox.get(idx)
+                seat_type = seat_text.split('(')[1].rstrip(')')
+                price = show_obj.price_for(seat_type.lower(), vip=(seat_type.upper() == 'VIP'))
+                total += float(price)
+            
+            num_seats = len(selected_indices)
+            price_display.set(f"Total for {num_seats} ticket{'s' if num_seats != 1 else ''}: £{total:.2f}")
+        
+        seats_listbox.bind('<<ListboxSelect>>', lambda e: update_price_display())
+        
+        # SECTION 5: RECEIPT PREVIEW
+        ttk.Separator(scrollable_frame, orient='horizontal').pack(fill='x', pady=10)
+        ttk.Label(scrollable_frame, text="STEP 5: BOOKING RECEIPT PREVIEW", font=(Theme.FONT_FAMILY, 13, "bold")).pack(anchor='w', padx=15, pady=(10, 5))
+        
+        receipt_frame = ttk.LabelFrame(scrollable_frame, text="Your Booking Receipt", padding=15)
+        receipt_frame.pack(fill='both', expand=False, padx=15, pady=5)
+        
+        receipt_text = tk.Text(receipt_frame, height=8, wrap='word', bg='#fffacd', font=('Courier', 10))
+        receipt_text.pack(fill='both', expand=True)
+        receipt_text.config(state='disabled')
+        
+        def update_receipt():
+            receipt_text.config(state='normal')
+            receipt_text.delete('1.0', tk.END)
+            
+            if not selected_show[0]:
+                receipt_text.insert(tk.END, "Select a show to preview receipt")
+                receipt_text.config(state='disabled')
+                return
+            
+            selected_indices = seats_listbox.curselection()
+            if not selected_indices:
+                receipt_text.insert(tk.END, "Select seats to preview receipt")
+                receipt_text.config(state='disabled')
+                return
+            
+            show_id = selected_show[0]['id']
+            show_obj = next((s for s in self.controller.get_all_shows() if int(s.id) == show_id), None)
+            
+            seat_texts = [seats_listbox.get(i) for i in selected_indices]
+            all_seats = self.controller.seat_repo.get_all_seats()
+            screen_id = int(show_obj.screen_id)
+            
+            seat_numbers = []
+            total_price = 0.0
+            for seat_text in seat_texts:
+                seat_num = seat_text.split()[0]
+                seat_type = seat_text.split('(')[1].rstrip(')')
+                seat_obj = next((s for s in all_seats if int(s.screen_id) == screen_id and s.seat_number == seat_num), None)
+                
+                if seat_obj:
+                    seat_numbers.append(seat_num)
+                    price = show_obj.price_for(seat_type.lower(), vip=(seat_type.upper() == 'VIP'))
+                    total_price += float(price)
+            
+            from datetime import datetime
+            receipt_lines = [
+                "╔═══════════════════════════════════════════════╗",
+                "║           HORIZON CINEMA BOOKING RECEIPT      ║",
+                "╚═══════════════════════════════════════════════╝",
+                "",
+                f"Booking Reference:  [WILL BE GENERATED]",
+                f"Film:               {show_obj.film_name}",
+                f"Cinema:             {show_obj.cinema_name}",
+                f"Screen:             {show_obj.screen_number}",
+                f"Date:               {show_obj.show_date}",
+                f"Time:               {show_obj.show_time}",
+                f"Seats:              {', '.join(seat_numbers)}",
+                f"Number of Tickets:  {len(seat_numbers)}",
+                f"Total Cost:         £{total_price:.2f}",
+                f"Booking Date:       {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}",
+                "",
+                "╔═══════════════════════════════════════════════╗",
+            ]
+            
+            receipt_text.insert(tk.END, '\n'.join(receipt_lines))
+            receipt_text.config(state='disabled')
+        
+        def refresh_all_displays():
+            update_details()
+            update_price_display()
+            refresh_available_seats()
+            update_receipt()
+        
+        seats_listbox.bind('<<ListboxSelect>>', lambda e: [update_price_display(), update_receipt()])
+        
+        # BUTTONS
+        button_frame = ttk.Frame(dialog)
+        button_frame.pack(fill='x', pady=15, padx=15)
+        
+        def confirm_booking():
+            selected_indices = seats_listbox.curselection()
+            if not selected_show[0] or not selected_indices:
+                messagebox.showwarning("Warning", "Please select a show and at least one seat")
+                return
+            
+            show_id = selected_show[0]['id']
+            show_obj = next((s for s in self.controller.get_all_shows() if int(s.id) == show_id), None)
+            
+            seat_texts = [seats_listbox.get(i) for i in selected_indices]
+            all_seats = self.controller.seat_repo.get_all_seats()
+            screen_id = int(show_obj.screen_id)
+            
+            seat_ids = []
+            seat_numbers = []
+            total_price = 0.0
+            for seat_text in seat_texts:
+                seat_num = seat_text.split()[0]
+                seat_type = seat_text.split('(')[1].rstrip(')')
+                seat_obj = next((s for s in all_seats if int(s.screen_id) == screen_id and s.seat_number == seat_num), None)
+                
+                if seat_obj:
+                    seat_ids.append(seat_obj.id)
+                    seat_numbers.append(seat_num)
+                    price = show_obj.price_for(seat_type.lower(), vip=(seat_type.upper() == 'VIP'))
+                    total_price += float(price)
+            
+            if not messagebox.askyesno("Confirm Booking", 
+                f"Confirm booking for {len(seat_numbers)} seat(s)?\n\nSeats: {', '.join(seat_numbers)}\nTotal: £{total_price:.2f}"):
+                return
+            
+            try:
+                receipt = self.controller.create_booking(self.user, show_id, seat_ids)
+                booking_ref = receipt.get('booking_ref')
+                
+                receipt_msg = f"""╔═══════════════════════════════════════════════╗
+║        BOOKING CONFIRMED SUCCESSFULLY!       ║
+╚═══════════════════════════════════════════════╝
+
+Booking Reference: {booking_ref}
+Film: {receipt['film_name']}
+Cinema: {show_obj.cinema_name}
+Screen: {receipt['screen_number']}
+Date: {receipt['film_date']}
+Time: {receipt['show_time']}
+Seats: {', '.join(receipt['seat_numbers'])}
+Number of Tickets: {receipt['number_of_tickets']}
+Total Cost: £{receipt['total_price']:.2f}
+Booking Date: {receipt['created_at'][:10]}
+
+Thank you for booking with Horizon Cinema!"""
+                
+                messagebox.showinfo("Booking Confirmed", receipt_msg)
+                dialog.destroy()
+                self.refresh_booking_shows()
+                self.refresh_my_bookings()
+            except Exception as e:
+                messagebox.showerror("Error", f"Booking failed: {str(e)}")
+        
+        ttk.Button(button_frame, text="✓ CONFIRM BOOKING", command=confirm_booking, style="Success.TButton").pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="✕ CANCEL", command=dialog.destroy, style="Danger.TButton").pack(side=tk.LEFT, padx=5)
+        
+        # Initial load
+        update_details()
+        update_receipt()
+
     def logout(self):
+        self.root.destroy()
+        from gui.loginWindow import LoginWindow
+        LoginWindow()
         self.root.destroy()
         from gui.loginWindow import LoginWindow
         LoginWindow()

@@ -1,5 +1,5 @@
 class Show:
-    def __init__(self, id, film_id, screen_id, show_date, show_time, base_price, film_name=None, cinema_name=None, screen_number=None, available_seats=0, lower_available=0, upper_available=0, vip_available=0):
+    def __init__(self, id, film_id, screen_id, show_date, show_time, base_price, film_name=None, cinema_name=None, city_name=None, screen_number=None, available_seats=0, lower_available=0, upper_available=0, vip_available=0):
         self.id = id
         self.film_id = film_id
         self.screen_id = screen_id
@@ -10,6 +10,7 @@ class Show:
         # Optional names for HUD/Display
         self.film_name = film_name
         self.cinema_name = cinema_name
+        self.city_name = city_name
         self.screen_number = screen_number
         self.available_seats = available_seats
         self.lower_available = lower_available
@@ -25,6 +26,9 @@ class Show:
     def get_screen_id(self):
         return self.screen_id
 
+    def get_city_name(self):
+        return self.city_name
+
     def get_show_time(self):
         return self.show_time
 
@@ -34,10 +38,36 @@ class Show:
     def get_display_info(self):
         return f"{self.film_name} | {self.cinema_name} - {self.screen_number} | {self.show_time}"
 
+    def get_time_band(self):
+        """Classify the show as Morning, Afternoon, or Evening."""
+        hour = int(self.show_time.split(':')[0])
+        if hour < 12:
+            return 'Morning'
+        if hour < 17:
+            return 'Afternoon'
+        return 'Evening'
+
+    def get_city_multiplier(self):
+        city_multipliers = {
+            'Birmingham': 1.00,
+            'Bristol': 1.05,
+            'Cardiff': 1.03,
+            'London': 1.15,
+        }
+        return city_multipliers.get(self.city_name, 1.0)
+
+    def get_time_multiplier(self):
+        time_band = self.get_time_band()
+        if time_band == 'Morning':
+            return 0.90
+        if time_band == 'Afternoon':
+            return 1.00
+        return 1.10
+
     # Pricing helpers
     def get_lower_price(self):
         """Lower hall base price (stored in show as base_price)."""
-        return float(self.base_price)
+        return round(float(self.base_price) * self.get_city_multiplier() * self.get_time_multiplier(), 2)
 
     def get_upper_price(self):
         """Upper gallery price is 20% higher than lower hall."""

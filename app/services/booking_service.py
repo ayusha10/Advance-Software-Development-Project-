@@ -54,6 +54,9 @@ class BookingService:
         if getattr(user, 'role', None) == 'Booking-Staff' and not customer_user_id:
             raise BookingError('Booking staff must create bookings on behalf of a customer')
 
+        if getattr(user, 'role', None) == 'Booking-Staff' and not getattr(user, 'assigned_city_id', None):
+            raise BookingError('Booking staff must have an assigned city')
+
         # Only Admin, Manager or Booking-Staff may create bookings on behalf of customers
         if customer_user_id and getattr(user, 'role', None) not in ('Admin', 'Manager', 'Booking-Staff'):
             raise BookingError('Only Admin, Manager or Booking-Staff can create bookings on behalf of customers')
@@ -148,6 +151,7 @@ class BookingService:
         receipt = {
             'booking_ref': booking_ref,
             'film_name': show.film_name,
+            'film_date': show.show_date,
             'booking_date': show.show_date,
             'show_time': show.show_time,
             'screen_number': show.screen_number,
@@ -177,15 +181,18 @@ class BookingService:
         if days_before_show < 0:
             raise BookingError('Cancellation not allowed after the show date')
 
+        if days_before_show == 0:
+            raise BookingError('Cancellation not allowed on the day of the show')
+
         # Permission check
         allowed_roles = ('Admin', 'Manager', 'Booking-Staff')
         if getattr(user, 'role', None) not in allowed_roles and getattr(user, 'user_id', None) != booking.get_user_id():
             raise BookingError('Not authorized to cancel this booking')
 
         # Refund policy:
-        # - Cancel at least 1 day before show: 100% refund
-        # - Cancel on show day: 50% refund
-        if days_before_show >= 1:
+        # - More than 1 day before show: full refund
+        # - Exactly 1 day before show: 50% refund
+        if days_before_show > 1:
             refund_amount = round(float(booking.get_total_price()), 2)
         else:
             refund_amount = round(float(booking.get_total_price()) * 0.5, 2)

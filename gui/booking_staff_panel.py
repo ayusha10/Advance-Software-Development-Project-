@@ -22,6 +22,7 @@ class BookingStaffPanel:
         user_info = ttk.Frame(header)
         user_info.pack(side=tk.RIGHT)
         ttk.Label(user_info, text=f"Staff: {self.user.username}", font=Theme.FONT_BOLD).pack(side=tk.LEFT, padx=8)
+        ttk.Button(user_info, text="Cancellation GUI", command=self.open_cancellation_gui, style="Accent.TButton").pack(side=tk.LEFT, padx=5)
         ttk.Button(user_info, text="Logout", command=self.logout, style="Danger.TButton").pack(side=tk.LEFT)
 
         self.notebook = ttk.Notebook(self.root)
@@ -68,6 +69,11 @@ class BookingStaffPanel:
         # Seats & booking
         seat_frame = ttk.LabelFrame(self.book_frame, text="Select Seats")
         seat_frame.pack(fill='both', expand=True, padx=10, pady=6)
+        ttk.Label(seat_frame, text="Seat Type:").pack(anchor='w', padx=5, pady=(5, 0))
+        self.seat_type_filter = tk.StringVar(value='All')
+        seat_type_combo = ttk.Combobox(seat_frame, textvariable=self.seat_type_filter, state='readonly', values=['All', 'Lower', 'Upper', 'VIP'])
+        seat_type_combo.pack(fill='x', padx=5, pady=5)
+        seat_type_combo.bind('<<ComboboxSelected>>', self.refresh_selected_show_seats)
         self.seats_listbox = tk.Listbox(seat_frame, selectmode=tk.MULTIPLE, height=8)
         self.seats_listbox.pack(side=tk.LEFT, fill='both', expand=True, padx=5, pady=5)
 
@@ -84,26 +90,45 @@ class BookingStaffPanel:
     def refresh_shows(self):
         for item in self.shows_tree.get_children():
             self.shows_tree.delete(item)
-        # Filter shows by staff assigned city
-        staff_city = getattr(self.user, 'assigned_city_id', None)
-        shows = self.controller.get_all_shows()
-        cinemas = self.controller.get_all_cinemas()
-        screens = self.controller.get_all_screens()
-        # map cinema id -> city_id
-        cinema_city = {c.id: c.city_id for c in cinemas}
-        screen_map = {s.id: s for s in screens}
+        
+        try:
+            staff_city = getattr(self.user, 'assigned_city_id', None)
+            if not staff_city:
+                messagebox.showwarning("Warning", "Your staff account has no assigned city")
+                return
+            
+            shows = self.controller.get_all_shows()
+            if not shows:
+                messagebox.showinfo("Info", "No shows available in database")
+                return
+                
+            cinemas = self.controller.get_all_cinemas()
+            screens = self.controller.get_all_screens()
+            
+            cinema_city = {c.id: c.city_id for c in cinemas}
+            screen_map = {s.id: s for s in screens}
 
-        for s in shows:
-            screen = screen_map.get(s.screen_id)
-            if not screen:
-                continue
-            cinema_id = screen.cinema_id
-            if staff_city and cinema_city.get(cinema_id) != staff_city:
-                continue
-            self.shows_tree.insert('', tk.END, values=(
-                s.id, s.film_name, s.cinema_name, s.screen_number, s.show_date, s.show_time,
-                s.lower_available, s.upper_available, s.vip_available, f"£{s.base_price}"
-            ))
+            shows_added = 0
+            for s in shows:
+                screen = screen_map.get(s.screen_id)
+                if not screen:
+                    continue
+                cinema_id = screen.cinema_id
+                show_city = cinema_city.get(cinema_id)
+                
+                if show_city != staff_city:
+                    continue
+                    
+                self.shows_tree.insert('', tk.END, values=(
+                    s.id, s.film_name, s.cinema_name, s.screen_number, s.show_date, s.show_time,
+                    s.lower_available, s.upper_available, s.vip_available, f"£{s.base_price:.2f}"
+                ))
+                shows_added += 1
+            
+            if shows_added == 0:
+                messagebox.showinfo("Info", "No shows available in your assigned city")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to load shows: {str(e)}")
 
     def on_show_select(self, event):
         sel = self.shows_tree.selection()
@@ -117,6 +142,16 @@ class BookingStaffPanel:
             return
         screen_id = show.screen_id
         self.load_available_seats(show_id, screen_id)
+
+    def refresh_selected_show_seats(self, event=None):
+        sel = self.shows_tree.selection()
+        if not sel:
+            return
+        vals = self.shows_tree.item(sel[0])['values']
+        show_id = int(vals[0])
+        show = self.controller.get_show_by_id(show_id)
+        if show:
+            self.load_available_seats(show_id, show.screen_id)
 
     def load_available_seats(self, show_id, screen_id):
         self.seats_listbox.delete(0, tk.END)
@@ -133,7 +168,9 @@ class BookingStaffPanel:
         
         for s in screen_seats:
             if s.id not in unavailable_ids:
-                self.seats_listbox.insert(tk.END, f"{s.seat_number} ({s.seat_type})|ID:{s.id}")
+                seat_type_filter = self.seat_type_filter.get()
+                if seat_type_filter == 'All' or s.seat_type == seat_type_filter:
+                    self.seats_listbox.insert(tk.END, f"{s.seat_number} ({s.seat_type})|ID:{s.id}")
 
     def book_for_customer(self):
         cust_label = self.customer_combo.get()
@@ -188,15 +225,37 @@ class BookingStaffPanel:
     def refresh_bookings(self):
         for it in self.book_tree.get_children():
             self.book_tree.delete(it)
-        # aggregate bookings for cinemas in staff city
-        staff_city = getattr(self.user, 'assigned_city_id', None)
-        cinemas = self.controller.get_all_cinemas()
-        target_cinemas = [c.id for c in cinemas if c.city_id == staff_city]
-        bookings = []
-        for cid in target_cinemas:
-            bookings.extend(self.controller.get_all_bookings(cid))
-        for b in bookings:
-            self.book_tree.insert('', tk.END, values=(b.id, b.booking_ref, b.username, b.movie_name, b.cinema_name, b.seats, b.total_price, b.status, b.booking_date))
+        
+        try:
+            staff_city = getattr(self.user, 'assigned_city_id', None)
+            if not staff_city:
+                messagebox.showwarning("Warning", "Your staff account has no assigned city")
+                return
+            
+            cinemas = self.controller.get_all_cinemas()
+            target_cinemas = [c.id for c in cinemas if c.city_id == staff_city]
+            
+            bookings_added = 0
+            for cid in target_cinemas:
+                bookings = self.controller.get_all_bookings(cid)
+                for b in bookings:
+                    self.book_tree.insert('', tk.END, values=(
+                        b.id, 
+                        b.booking_ref, 
+                        b.username, 
+                        b.movie_name, 
+                        b.cinema_name, 
+                        b.seats if b.seats else "N/A", 
+                        f"£{b.total_price:.2f}", 
+                        b.status, 
+                        b.booking_date
+                    ))
+                    bookings_added += 1
+            
+            if bookings_added == 0:
+                messagebox.showinfo("Info", "No bookings found in your assigned city")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to load bookings: {str(e)}")
 
     def cancel_selected_booking(self):
         sel = self.book_tree.selection()
@@ -204,6 +263,12 @@ class BookingStaffPanel:
             messagebox.showwarning("Warning", "Select a booking")
             return
         booking_ref = self.book_tree.item(sel[0])['values'][1]
+        status = self.book_tree.item(sel[0])['values'][6]
+        
+        if status == "CANCELLED":
+            messagebox.showwarning("Warning", "This booking is already cancelled")
+            return
+        
         if not messagebox.askyesno("Confirm", f"Cancel booking {booking_ref}?"):
             return
         try:
@@ -217,6 +282,10 @@ class BookingStaffPanel:
             self.refresh_bookings()
         except Exception as e:
             messagebox.showerror("Error", f"Failed to cancel booking: {str(e)}")
+
+    def open_cancellation_gui(self):
+        from gui.cancellation_gui import CancellationWindow
+        CancellationWindow(self.user)
 
     def logout(self):
         self.root.destroy()

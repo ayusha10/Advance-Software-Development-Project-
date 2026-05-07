@@ -1,11 +1,12 @@
 class Film:
-    def __init__(self, id, name, genre, age_rating, description, time_duration):
+    def __init__(self, id, name, genre, age_rating, description, time_duration, actors=None):
         self.id = id
         self.name = name
         self.genre = genre
         self.age_rating = age_rating
         self.description = description
         self.time_duration = time_duration
+        self.actors = actors
 
     def get_id(self):
         return self.id
@@ -24,3 +25,6 @@ class Film:
 
     def get_time_duration(self):
         return self.time_duration
+
+    def get_actors(self):
+        return self.actors

@@ -7,7 +7,7 @@ class ShowRepository:
         connection.row_factory = __import__('sqlite3').Row
         cursor = connection.cursor()
         query = """
-            SELECT s.*, f.name as film_name, c.name as cinema_name, sc.screen_number, sc.total_seats,
+            SELECT s.*, f.name as film_name, c.name as cinema_name, ci.name as city_name, sc.screen_number, sc.total_seats,
             (SELECT COUNT(*) FROM booked_seats bs 
              JOIN bookings b ON bs.booking_id = b.id 
              WHERE bs.show_id = s.id AND b.status != 'CANCELLED') as booked_count,
@@ -21,6 +21,7 @@ class ShowRepository:
             JOIN films f ON s.film_id = f.id
             JOIN screens sc ON s.screen_id = sc.id
             JOIN cinemas c ON sc.cinema_id = c.id
+            JOIN cities ci ON c.city_id = ci.id
         """
         params = []
         if cinema_id:
@@ -45,6 +46,7 @@ class ShowRepository:
                 base_price=r['base_price'],
                 film_name=r['film_name'],
                 cinema_name=r['cinema_name'],
+                city_name=r['city_name'],
                 screen_number=r['screen_number'],
                 available_seats=available,
                 lower_available=lower_av,
@@ -89,7 +91,7 @@ class ShowRepository:
         connection.row_factory = __import__('sqlite3').Row
         cursor = connection.cursor()
         query = """
-            SELECT s.*, f.name as film_name, c.name as cinema_name, sc.screen_number, sc.total_seats,
+            SELECT s.*, f.name as film_name, c.name as cinema_name, ci.name as city_name, sc.screen_number, sc.total_seats,
             (SELECT COUNT(*) FROM booked_seats bs 
              JOIN bookings b ON bs.booking_id = b.id 
              WHERE bs.show_id = s.id AND b.status != 'CANCELLED') as booked_count,
@@ -103,6 +105,7 @@ class ShowRepository:
             JOIN films f ON s.film_id = f.id
             JOIN screens sc ON s.screen_id = sc.id
             JOIN cinemas c ON sc.cinema_id = c.id
+            JOIN cities ci ON c.city_id = ci.id
             WHERE s.id = ?
         """
         cursor.execute(query, (show_id,))
@@ -125,6 +128,7 @@ class ShowRepository:
                 base_price=r['base_price'],
                 film_name=r['film_name'],
                 cinema_name=r['cinema_name'],
+                city_name=r['city_name'],
                 screen_number=r['screen_number'],
                 available_seats=available,
                 lower_available=lower_av,

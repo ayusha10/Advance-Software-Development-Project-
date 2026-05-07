@@ -75,7 +75,7 @@ class ManagerPanel:
     def setup_show_tab(self):
         ttk.Label(self.show_frame, text="Show Management", font=("Arial", 16, "bold")).pack(fill='x', pady=10)
         
-        cols = ('ID', 'Film', 'Screen', 'Time', 'Available', 'Price')
+        cols = ('ID', 'Film', 'Cinema', 'Screen', 'Time', 'Available', 'Price')
         self.show_tree = ttk.Treeview(self.show_frame, columns=cols, show='headings')
         for col in cols:
             self.show_tree.heading(col, text=col, anchor='center')
@@ -96,15 +96,10 @@ class ManagerPanel:
             self.show_tree.delete(item)
         
         all_shows = self.controller.get_all_shows()
-        city_cinemas = [c.id for c in self.controller.get_all_cinemas() if c.city_id == self.user.assigned_city_id]
-        all_screens = self.controller.get_all_screens()
-        valid_screens = [s.id for s in all_screens if s.cinema_id in city_cinemas]
-
         for s in all_shows:
-            if s.screen_id in valid_screens:
-                self.show_tree.insert('', tk.END, values=(
-                    s.id, s.film_name, s.screen_number, s.show_time, s.available_seats, s.base_price
-                ))
+            self.show_tree.insert('', tk.END, values=(
+                s.id, s.film_name, s.cinema_name, s.screen_number, s.show_time, s.available_seats, s.base_price
+            ))
 
     def add_show_dialog(self):
         dialog = tk.Toplevel(self.root)
@@ -120,11 +115,8 @@ class ManagerPanel:
         film_combo.pack(fill='x')
 
         ttk.Label(container, text="Select Screen").pack(fill='x', pady=5)
-        # Filtered by manager's cinema
-        all_screens = self.controller.get_all_screens()
-        city_cinemas = [c.id for c in self.controller.get_all_cinemas() if c.city_id == self.user.assigned_city_id]
-        screens = [s for s in all_screens if s.cinema_id in city_cinemas]
-        screen_map = {f"Screen {s.screen_number}": s.id for s in screens}
+        screens = self.controller.get_all_screens()
+        screen_map = {f"{s.get_cinema_name()} - Screen {s.screen_number}": s.id for s in screens}
         screen_combo = ttk.Combobox(container, values=list(screen_map.keys()), state="readonly")
         screen_combo.pack(fill='x')
 
@@ -197,13 +189,11 @@ class ManagerPanel:
             film_combo.set(show.film_name)
 
         ttk.Label(container, text="Select Screen").pack(fill='x', pady=5)
-        all_screens = self.controller.get_all_screens()
-        city_cinemas = [c.id for c in self.controller.get_all_cinemas() if c.city_id == self.user.assigned_city_id]
-        screens = [s for s in all_screens if s.cinema_id in city_cinemas]
-        screen_map = {f"Screen {s.screen_number}": s.id for s in screens}
+        screens = self.controller.get_all_screens()
+        screen_map = {f"{s.get_cinema_name()} - Screen {s.screen_number}": s.id for s in screens}
         screen_combo = ttk.Combobox(container, values=list(screen_map.keys()), state="readonly")
         screen_combo.pack(fill='x')
-        screen_label = f"Screen {show.screen_number}"
+        screen_label = f"{show.cinema_name} - Screen {show.screen_number}"
         if screen_label in screen_map:
             screen_combo.set(screen_label)
 
@@ -243,11 +233,14 @@ class ManagerPanel:
     def setup_film_tab(self):
         ttk.Label(self.film_frame, text="Film Management", font=("Arial", 16, "bold")).pack(fill='x', pady=10)
         
-        cols = ('ID', 'Name', 'Genre', 'Rating', 'Duration')
+        cols = ('ID', 'Name', 'Genre', 'Rating', 'Duration', 'Description', 'Actors', 'Show Times')
         self.film_tree = ttk.Treeview(self.film_frame, columns=cols, show='headings')
         for col in cols:
             self.film_tree.heading(col, text=col, anchor='center')
-            self.film_tree.column(col, width=120, anchor='center')
+            if col in ('Description', 'Actors', 'Show Times'):
+                self.film_tree.column(col, width=260, anchor='w')
+            else:
+                self.film_tree.column(col, width=120, anchor='center')
         self.film_tree.pack(expand=True, fill='both', padx=10, pady=10)
 
         btn_frame = ttk.Frame(self.film_frame)
@@ -263,8 +256,18 @@ class ManagerPanel:
         for item in self.film_tree.get_children():
             self.film_tree.delete(item)
         films = self.controller.get_all_films()
+        show_times = self.controller.get_film_show_times()
         for f in films:
-            self.film_tree.insert('', tk.END, values=(f.id, f.name, f.genre, f.age_rating, f.time_duration))
+            self.film_tree.insert('', tk.END, values=(
+                f.id,
+                f.name,
+                f.genre,
+                f.age_rating,
+                f.time_duration,
+                f.description if f.description else '',
+                f.actors if getattr(f, 'actors', None) else '',
+                show_times.get(f.name, '')
+            ))
 
     def add_film_dialog(self):
         dialog = tk.Toplevel(self.root)
@@ -414,8 +417,7 @@ class ManagerPanel:
             self.cinema_tree.delete(item)
         cinemas = self.controller.get_all_cinemas()
         for c in cinemas:
-            if c.city_id == self.user.assigned_city_id:
-                self.cinema_tree.insert('', tk.END, values=(c.id, c.name, c.city_id))
+            self.cinema_tree.insert('', tk.END, values=(c.id, c.name, c.city_id))
 
     def add_cinema_dialog(self):
         dialog = tk.Toplevel(self.root)
@@ -428,16 +430,21 @@ class ManagerPanel:
         name_entry = ttk.Entry(container)
         name_entry.pack(fill='x')
 
+        ttk.Label(container, text="City ID").pack(fill='x', pady=5)
+        city_entry = ttk.Entry(container)
+        city_entry.pack(fill='x')
+
         def save_cinema():
             name = name_entry.get()
-            if name:
+            city_id = city_entry.get()
+            if name and city_id:
                 from app.models.cinema import Cinema
-                new_cinema = Cinema(None, name, self.user.assigned_city_id)
+                new_cinema = Cinema(None, name, int(city_id))
                 self.controller.add_cinema(new_cinema)
                 self.refresh_cinemas()
                 dialog.destroy()
             else:
-                messagebox.showwarning("Warning", "Cinema name is required")
+                messagebox.showwarning("Warning", "Cinema name and city id are required")
 
         ttk.Button(container, text="Save", command=save_cinema).pack(fill='x', pady=10)
 
@@ -461,16 +468,24 @@ class ManagerPanel:
         name_entry.insert(0, current_name)
         name_entry.pack(fill='x')
 
+        ttk.Label(container, text="City ID").pack(fill='x', pady=5)
+        city_entry = ttk.Entry(container)
+        current_cinema = next((c for c in self.controller.get_all_cinemas() if c.id == cinema_id), None)
+        if current_cinema:
+            city_entry.insert(0, str(current_cinema.city_id))
+        city_entry.pack(fill='x')
+
         def update_cinema():
             name = name_entry.get()
-            if name:
+            city_id = city_entry.get()
+            if name and city_id:
                 from app.models.cinema import Cinema
-                updated_cinema = Cinema(cinema_id, name, self.user.assigned_city_id)
+                updated_cinema = Cinema(cinema_id, name, int(city_id))
                 self.controller.update_cinema(updated_cinema)
                 self.refresh_cinemas()
                 dialog.destroy()
             else:
-                messagebox.showwarning("Warning", "Cinema name is required")
+                messagebox.showwarning("Warning", "Cinema name and city id are required")
 
         ttk.Button(container, text="Update", command=update_cinema).pack(fill='x', pady=10)
 
@@ -509,11 +524,8 @@ class ManagerPanel:
             self.screen_tree.delete(item)
         
         all_screens = self.controller.get_all_screens()
-        city_cinemas = [c.id for c in self.controller.get_all_cinemas() if c.city_id == self.user.assigned_city_id]
-        
         for s in all_screens:
-            if s.cinema_id in city_cinemas:
-                self.screen_tree.insert('', tk.END, values=(s.id, s.get_cinema_name(), s.screen_number, s.total_seats))
+            self.screen_tree.insert('', tk.END, values=(s.id, s.get_cinema_name(), s.screen_number, s.total_seats))
 
     def add_screen_dialog(self):
         dialog = tk.Toplevel(self.root)
@@ -523,7 +535,7 @@ class ManagerPanel:
         container.pack(expand=True, fill="both")
 
         ttk.Label(container, text="Select Cinema").pack(fill='x', pady=5)
-        cinemas = [c for c in self.controller.get_all_cinemas() if c.city_id == self.user.assigned_city_id]
+        cinemas = self.controller.get_all_cinemas()
         cinema_map = {c.name: c.id for c in cinemas}
         cinema_combo = ttk.Combobox(container, values=list(cinema_map.keys()), state="readonly")
         cinema_combo.pack(fill='x')
@@ -579,7 +591,7 @@ class ManagerPanel:
         container.pack(expand=True, fill="both")
 
         ttk.Label(container, text="Select Cinema").pack(fill='x', pady=5)
-        cinemas = [c for c in self.controller.get_all_cinemas() if c.city_id == self.user.assigned_city_id]
+        cinemas = self.controller.get_all_cinemas()
         cinema_map = {c.name: c.id for c in cinemas}
         cinema_combo = ttk.Combobox(container, values=list(cinema_map.keys()), state="readonly")
         cinema_combo.pack(fill='x')
@@ -635,13 +647,8 @@ class ManagerPanel:
             self.seat_tree.delete(item)
         
         seats = self.controller.get_all_seats()
-        all_screens = self.controller.get_all_screens()
-        city_cinemas = [c.id for c in self.controller.get_all_cinemas() if c.city_id == self.user.assigned_city_id]
-        valid_screens = [s.id for s in all_screens if s.cinema_id in city_cinemas]
-        
         for s in seats:
-            if s.screen_id in valid_screens:
-                self.seat_tree.insert('', tk.END, values=(s.id, s.get_screen_info(), s.seat_number, s.seat_type))
+            self.seat_tree.insert('', tk.END, values=(s.id, s.get_screen_info(), s.seat_number, s.seat_type))
 
     def add_seat_dialog(self):
         dialog = tk.Toplevel(self.root)
@@ -652,10 +659,8 @@ class ManagerPanel:
 
         ttk.Label(container, text="Select Screen").pack(fill='x', pady=5)
         all_screens = self.controller.get_all_screens()
-        city_cinemas = [c.id for c in self.controller.get_all_cinemas() if c.city_id == self.user.assigned_city_id]
-        screens = [s for s in all_screens if s.cinema_id in city_cinemas]
-        screen_labels = [f"Screen {s.screen_number}" for s in screens]
-        screen_map = {f"Screen {s.screen_number}": s.id for s in screens}
+        screen_labels = [f"{s.get_cinema_name()} - Screen {s.screen_number}" for s in all_screens]
+        screen_map = {f"{s.get_cinema_name()} - Screen {s.screen_number}": s.id for s in all_screens}
 
         screen_combo = ttk.Combobox(container, values=screen_labels, state="readonly")
         screen_combo.pack(fill='x')
@@ -716,21 +721,13 @@ class ManagerPanel:
 
         ttk.Label(container, text="Select Screen").pack(fill='x', pady=5)
         all_screens = self.controller.get_all_screens()
-        city_cinemas = [c.id for c in self.controller.get_all_cinemas() if c.city_id == self.user.assigned_city_id]
-        screens = [s for s in all_screens if s.cinema_id in city_cinemas]
-        screen_labels = [f"Screen {s.screen_number}" for s in screens]
-        screen_map = {f"Screen {s.screen_number}": s.id for s in screens}
+        screen_labels = [f"{s.get_cinema_name()} - Screen {s.screen_number}" for s in all_screens]
+        screen_map = {f"{s.get_cinema_name()} - Screen {s.screen_number}": s.id for s in all_screens}
 
         screen_combo = ttk.Combobox(container, values=screen_labels, state="readonly")
         screen_combo.pack(fill='x')
-        # In manager panel, current_screen_info is likely "Cinema - Screen X". Let's extract just "Screen X"
-        if "-" in current_screen_info:
-            just_screen = current_screen_info.split("-")[-1].strip()
-        else:
-            just_screen = current_screen_info
-            
-        if just_screen in screen_labels:
-            screen_combo.set(just_screen)
+        if current_screen_info in screen_labels:
+            screen_combo.set(current_screen_info)
         elif screen_labels:
             screen_combo.current(0)
 
@@ -784,17 +781,10 @@ class ManagerPanel:
             self.booking_tree.delete(item)
             
         bookings = self.controller.get_all_bookings()
-        all_shows = self.controller.get_all_shows()
-        all_screens = self.controller.get_all_screens()
-        city_cinemas = [c.id for c in self.controller.get_all_cinemas() if c.city_id == self.user.assigned_city_id]
-        valid_screens = [s.id for s in all_screens if s.cinema_id in city_cinemas]
-        valid_shows = [s.id for s in all_shows if s.screen_id in valid_screens]
-        
         for b in bookings:
-            if b.show_id in valid_shows:
-                self.booking_tree.insert('', tk.END, values=(
-                    b.id, b.booking_ref, b.username, b.movie_name, b.seats, b.status, b.booking_date
-                ))
+            self.booking_tree.insert('', tk.END, values=(
+                b.id, b.booking_ref, b.username, b.movie_name, b.seats, b.status, b.booking_date
+            ))
 
     def cancel_booking(self):
         selected = self.booking_tree.selection()

@@ -37,6 +37,13 @@ class AdminController:
     def get_all_films(self):
         return self.film_repo.get_all_films()
 
+    def get_film_show_times(self):
+        shows = self.show_repo.get_all_shows()
+        show_times = {}
+        for show in shows:
+            show_times.setdefault(show.film_name, []).append(f"{show.show_date} {show.show_time}")
+        return {name: ", ".join(times) for name, times in show_times.items()}
+
     def add_film(self, film):
         return self.film_repo.add_film(film)
 
@@ -130,6 +137,9 @@ class AdminController:
 
     def get_bookings_by_user(self, user_id):
         return self.booking_repo.get_bookings_by_user(user_id)
+
+    def get_booking_by_ref(self, booking_ref):
+        return self.booking_repo.get_booking_by_ref(booking_ref)
 
     def get_show_by_id(self, show_id):
         return self.show_repo.get_show_by_id(show_id)
